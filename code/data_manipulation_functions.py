@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import ntpath
 import os
+import argparse
 
 
 def get_file_base_name(path):
@@ -72,7 +73,7 @@ def prepare_image_to_fit_learning_and_save(img_path, size, dst_GR_path, dst_GRF_
     img_grey_resized_flipped.save(grey_resized_flipped_file_path)
 
 
-def prepare_image_main(images_path):
+def prepare_image_main(images_path, size):
     all_images_dir = '/'.join(images_path.split('/')[:-1])
 
     grey_resized_directory_path = os.path.join(all_images_dir, 'training_GR')
@@ -84,8 +85,6 @@ def prepare_image_main(images_path):
 
     if not os .path.exists(grey_resized_flipped_directory_path):
         os.mkdir(grey_resized_flipped_directory_path)
-
-    size = np.array([800, 600])
 
     images_list = os.listdir(images_path)
 
@@ -99,10 +98,10 @@ def prepare_image_main(images_path):
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', '--directory', type=str, required=True, help='Directory containing the images')
+    parser.add_argument('-s', '--size', type=int, nargs=2, required=False, metavar=('width', 'height'), help='Image size')
+    args = parser.parse_args()
 
-    prepare_image_main('/Users/iliabenkovitch/Documents/Computer_Vision/git/data/original_training')
-    # img_path = '/Users/iliabenkovitch/Documents/Computer_Vision/git/tmp/test.jpg'
-    #
-    # size = np.array([800, 600])
-    # dst_path = '/Users/iliabenkovitch/Documents/Computer_Vision/git/tmp/'
-    # prepare_image_to_fit_learning_and_save(img_path, size, dst_path)
+    if args.size != None:
+        prepare_image_main(args.directory, args.size)
