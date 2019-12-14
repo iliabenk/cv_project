@@ -1,0 +1,26 @@
+<annotation>
+	<folder>test</folder>
+	<filename>DSCF1097.JPG</filename>
+	<path>/Users/iliabenkovitch/Documents/Computer_Vision/git/cv_project/data/test/DSCF1097.JPG</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>3648</width>
+		<height>2736</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>car</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>1325</xmin>
+			<ymin>610</ymin>
+			<xmax>2552</xmax>
+			<ymax>1388</ymax>
+		</bndbox>
+	</object>
+</annotation>
