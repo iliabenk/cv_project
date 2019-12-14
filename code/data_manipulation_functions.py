@@ -7,8 +7,6 @@ import numpy as np
 import ntpath
 import os
 
-# img = Image.open('image.png').convert('LA')
-# img.save('greyscale.png')
 
 def get_file_base_name(path):
     head, tail = ntpath.split(path)
@@ -46,9 +44,12 @@ def flip_image(img):
 
     return img_flipped
 
-def prepare_image_to_fit_learning_and_save(img_path, size, dst_path):
-    if os.path.isdir(dst_path) is False:
-        assert False, "dst_path should be a directory"
+def prepare_image_to_fit_learning_and_save(img_path, size, dst_GR_path, dst_GRF_path):
+    if os.path.isdir(dst_GR_path) is False:
+        assert False, "dst_GR_path should be a directory"
+
+    if os.path.isdir(dst_GRF_path) is False:
+        assert False, "dst_GRF_path should be a directory"
 
     if os.path.isdir(img_path) is True:
         assert False, "img_path should not be a directory"
@@ -60,9 +61,9 @@ def prepare_image_to_fit_learning_and_save(img_path, size, dst_path):
     grey_resized_file_name = file_name_without_extension + '_GR.png'
     grey_resized_flipped_file_name = file_name_without_extension + '_GRF.png'
 
-    grey_resized_file_path = os.path.join(dst_path, grey_resized_file_name)
+    grey_resized_file_path = os.path.join(dst_GR_path, grey_resized_file_name)
 
-    grey_resized_flipped_file_path = os.path.join(dst_path, grey_resized_flipped_file_name)
+    grey_resized_flipped_file_path = os.path.join(dst_GRF_path, grey_resized_flipped_file_name)
 
     img_grey_resized = resize_image(rgb2grey(img), size)
     img_grey_resized.save(grey_resized_file_path)
@@ -70,10 +71,38 @@ def prepare_image_to_fit_learning_and_save(img_path, size, dst_path):
     img_grey_resized_flipped = flip_image(img_grey_resized)
     img_grey_resized_flipped.save(grey_resized_flipped_file_path)
 
-if __name__ == '__main__':
 
-    img_path = '/Users/iliabenkovitch/Documents/Computer_Vision/git/tmp/test.jpg'
+def prepare_image_main(images_path):
+    all_images_dir = '/'.join(images_path.split('/')[:-1])
+
+    grey_resized_directory_path = os.path.join(all_images_dir, 'training_GR')
+
+    if not os.path.exists(grey_resized_directory_path):
+        os.mkdir(grey_resized_directory_path)
+
+    grey_resized_flipped_directory_path = os.path.join(all_images_dir, 'training_GRF')
+
+    if not os .path.exists(grey_resized_flipped_directory_path):
+        os.mkdir(grey_resized_flipped_directory_path)
 
     size = np.array([800, 600])
-    dst_path = '/Users/iliabenkovitch/Documents/Computer_Vision/git/tmp/'
-    prepare_image_to_fit_learning_and_save(img_path, size, dst_path)
+
+    images_list = os.listdir(images_path)
+
+    for img in images_list:
+        if img.startswith('.'):
+            continue
+
+        img_path = os.path.join(images_path, img)
+
+        prepare_image_to_fit_learning_and_save(img_path, size, grey_resized_directory_path, grey_resized_flipped_directory_path)
+
+
+if __name__ == '__main__':
+
+    prepare_image_main('/Users/iliabenkovitch/Documents/Computer_Vision/git/data/original_training')
+    # img_path = '/Users/iliabenkovitch/Documents/Computer_Vision/git/tmp/test.jpg'
+    #
+    # size = np.array([800, 600])
+    # dst_path = '/Users/iliabenkovitch/Documents/Computer_Vision/git/tmp/'
+    # prepare_image_to_fit_learning_and_save(img_path, size, dst_path)
