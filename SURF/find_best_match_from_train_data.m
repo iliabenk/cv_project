@@ -3,6 +3,7 @@ function [label, matched_points] = find_best_match_from_train_data(train_data, I
     best_match_index = 0;
     best_match_num_of_pairs = 0;
     match_hist = zeros(6, 1);
+    match_pairs_counter = zeros(6, 1);
     valid_data = train_data;
     valid_img_pairs_index = 1;
     is_found_any_matching_train_image = 0;
@@ -12,14 +13,26 @@ function [label, matched_points] = find_best_match_from_train_data(train_data, I
             I_train_features = train_data(train_index).features;
             I_train_valid_points = train_data(train_index).points;
 
-            img_pairs = matchFeatures(I_train_features , I_test_features , 'MatchThreshold' , 1.7);
-
-            num_of_pairs = size(img_pairs, 1);
+            img_pairs = matchFeatures(I_train_features , I_test_features , 'MatchThreshold' , 7);
+            
+            num_of_pairs = size(img_pairs, 1); 
+            
+            %remove outliers before deciding ?
+            img_pairs_no_outliers = img_pairs; %in case we do not remove, still need the variable
+%             if num_of_pairs >= pairs_thr
+%                 min_inliers_percent = 0.5;
+%                 data_type = 'pairs';
+%                 data.test_points = img_pairs;
+%                 data.I_test_vaild_points = I_test_vaild_points;
+%                 img_pairs_no_outliers = remove_outliers(data, min_inliers_percent, data_type);
+%                 num_of_pairs = size(img_pairs_no_outliers, 1);
+%             end
 
             if num_of_pairs >= pairs_thr
                is_found_any_matching_train_image = 1;
-               match_hist(train_data(train_index).label) = match_hist(train_data(train_index).label) + 1;   
-               valid_img_pairs(valid_img_pairs_index).pairs = img_pairs;
+               match_hist(train_data(train_index).label) = match_hist(train_data(train_index).label) + 1; 
+               match_pairs_counter(train_data(train_index).label) = match_pairs_counter(train_data(train_index).label) + num_of_pairs;
+               valid_img_pairs(valid_img_pairs_index).pairs = img_pairs_no_outliers;
                valid_img_pairs(valid_img_pairs_index).label = train_data(train_index).label;
                valid_img_pairs_index = valid_img_pairs_index + 1;
             end
@@ -34,7 +47,8 @@ function [label, matched_points] = find_best_match_from_train_data(train_data, I
         pairs_thr = pairs_thr - 1;
     end
     
-    [~, label] = max(match_hist);
+    likelihood_type = 'counter';
+    label = get_best_candidate(match_hist, match_pairs_counter, likelihood_type);    
     
     valid_img_pairs = remove_wrong_labels_from_data(valid_img_pairs, label);
     

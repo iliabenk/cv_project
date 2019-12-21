@@ -2,6 +2,7 @@ function [train_features_labels] = create_training_surf_features(test_dir_path, 
     list_dir = dir(test_dir_path);
     
     output_index = 1;
+    counter_amount_training_per_label = zeros(6, 1);
     
     for file_num = 1 : length(list_dir)
        file_name = list_dir(file_num).name;
@@ -28,6 +29,8 @@ function [train_features_labels] = create_training_surf_features(test_dir_path, 
            error(['Unknown color on file: ', file_name]);
        end
        
+       counter_amount_training_per_label(label) = counter_amount_training_per_label(label) + 1;
+       
        I_train = imread(img_path);
        I_train = double(I_train) ./ 255;
        I_train = rgb2gray(I_train);
@@ -41,5 +44,11 @@ function [train_features_labels] = create_training_surf_features(test_dir_path, 
        train_features_labels(output_index).label = label;
        
        output_index = output_index + 1;
+    end
+    
+    disp('Total amount of training data per label is:');
+    
+    for label = 1 : 6
+       disp(['num of ', label_to_name(label), ' data images = ', num2str(counter_amount_training_per_label(label))]); 
     end
 end

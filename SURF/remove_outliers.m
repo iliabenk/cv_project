@@ -1,7 +1,14 @@
-function [match_points_location_cleaned] = remove_outliers(match_points_location, min_inliers_percent)
+function [match_points_location_cleaned] = remove_outliers(data, min_inliers_percent, data_type)
 
 min_area = 10 ^ 8;
 best_inliers_bitmask = [];
+
+if strcmp(data_type, 'pairs')
+    match_points_location = data.I_test_vaild_points(data.test_points(:, 2));
+    match_points_location = match_points_location.Location;
+else
+   match_points_location = data; 
+end
 
 while isempty(best_inliers_bitmask)
     for iteration = 1 : 20
@@ -31,8 +38,11 @@ while isempty(best_inliers_bitmask)
 end
 
 % best_inliers_index = best_inliers_bitmask .* [1 : length(best_inliers_bitmask)].';
-match_points_location_cleaned = match_points_location(best_inliers_bitmask == 1, :); 
-
+if strcmp(data_type, 'pairs')
+    match_points_location_cleaned = data.test_points(best_inliers_bitmask == 1, :); 
+else
+    match_points_location_cleaned = data(best_inliers_bitmask == 1, :); 
+end
 end
 
 

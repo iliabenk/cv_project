@@ -31,8 +31,11 @@ function [test_features_labels] = run_test(test_dir_path, num_octaves, num_scale
           match_points_location = round(test_features_labels(output_index).match_points.Location);
           
           min_inliers_percent = 0.5;
+          data_type = 'points';
           
-          match_points_location_cleaned = remove_outliers(match_points_location, min_inliers_percent);
+          %remove outliers before boxing
+          match_points_location_cleaned = match_points_location; %in case we do not remove outliers
+          match_points_location_cleaned = remove_outliers(match_points_location, min_inliers_percent, data_type);
           
           toc
           

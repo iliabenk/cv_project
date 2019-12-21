@@ -5,13 +5,13 @@ figNum = 1;
 
 train_dir = '/Users/iliabenkovitch/Documents/Computer_Vision/git/cv_project/SURF/data/training';
 num_octaves = 3;
-num_scales = 6;
+num_scales = 7;
 train_data = create_training_surf_features(train_dir, num_octaves, num_scales);
 
 test_dir = '/Users/iliabenkovitch/Documents/Computer_Vision/git/cv_project/SURF/data/test';
 num_octaves = 3;
-num_scales = 6;
-pairs_thr = 30;
+num_scales = 7;
+pairs_thr = 10;
 
 test_data = run_test(test_dir, num_octaves, num_scales, train_data, pairs_thr);
 
