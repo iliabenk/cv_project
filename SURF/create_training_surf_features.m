@@ -35,6 +35,7 @@ function [train_features_labels] = create_training_surf_features(test_dir_path, 
        I_train = double(I_train) ./ 255;
        I_train = rgb2gray(I_train);
 %        I_train = imresize(I_train, [800, 600]); %test toresize image
+%        I_train = imgaussfilt(I_train, 0.5);
        
        I_train_points = detectSURFFeatures(I_train, 'NumOctaves', num_octaves, 'NumScaleLevels', num_scales);
        [I_train_features , I_train_vaild_points] = extractFeatures(I_train , I_train_points);

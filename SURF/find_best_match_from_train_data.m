@@ -13,7 +13,7 @@ function [label, matched_points] = find_best_match_from_train_data(train_data, I
             I_train_features = train_data(train_index).features;
             I_train_valid_points = train_data(train_index).points;
 
-            img_pairs = matchFeatures(I_train_features , I_test_features , 'MatchThreshold' , 7);
+            img_pairs = matchFeatures(I_train_features , I_test_features , 'MatchThreshold' , 1);
             
             num_of_pairs = size(img_pairs, 1); 
             
@@ -28,7 +28,7 @@ function [label, matched_points] = find_best_match_from_train_data(train_data, I
 %                 num_of_pairs = size(img_pairs_no_outliers, 1);
 %             end
 
-            if num_of_pairs >= pairs_thr
+            if 1%num_of_pairs >= pairs_thr
                is_found_any_matching_train_image = 1;
                match_hist(train_data(train_index).label) = match_hist(train_data(train_index).label) + 1; 
                match_pairs_counter(train_data(train_index).label) = match_pairs_counter(train_data(train_index).label) + num_of_pairs;
@@ -48,6 +48,7 @@ function [label, matched_points] = find_best_match_from_train_data(train_data, I
     end
     
     likelihood_type = 'counter';
+    match_pairs_counter %print for debug
     label = get_best_candidate(match_hist, match_pairs_counter, likelihood_type);    
     
     valid_img_pairs = remove_wrong_labels_from_data(valid_img_pairs, label);

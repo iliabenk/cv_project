@@ -15,9 +15,13 @@ function [test_features_labels] = run_test(test_dir_path, num_octaves, num_scale
        tic
        
        I_test_colored = imread(img_path);
+       
+%        imshow(I_test_colored); %for debug
+       
        I_test = double(I_test_colored) ./ 255;
        I_test = rgb2gray(I_test);
 %        I_test = imresize(I_test, [800, 600]); %test toresize image
+%        I_test = imgaussfilt(I_test, 0.5);
        
        I_test_points = detectSURFFeatures(I_test, 'NumOctaves', num_octaves, 'NumScaleLevels', num_scales);
        [I_test_features , I_test_vaild_points] = extractFeatures(I_test , I_test_points);
