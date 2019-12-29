@@ -16,10 +16,29 @@ import torchvision.transforms as T
 import copy
 import cv2
 import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
+from mpl_toolkits.mplot3d import Axes3D
+import shutil
 
+########### start configs
+data_path = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/all_images"
+train_perc = 0.8
+model_file_name = "nn_busses_2.pt"
+
+train_color_folder_path = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/boxes"
+test_color_folder_path = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/boxes_test"
+
+train_surf_folder_path = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/boxes"
+test_surf_folder_path = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/boxes_test"
 
 # Defines the labels for the model, change to colors if you want.
-COCO_INSTANCE_CATEGORY_NAMES = ['background','buss']
+COCO_INSTANCE_CATEGORY_NAMES = ['background','bus']
+# COCO_INSTANCE_CATEGORY_NAMES = ['background', 'green', 'yellow', 'white', 'grey', 'blue', 'red']
+num_epochs = 1
+
+test_threshold = 0.9
+
+########### end configs
 
 # get prediction from model (was taken from an RCNN tutorial)
 def get_prediction(model, img_path, threshold):
@@ -57,18 +76,19 @@ def object_detection_api(model, output_dir,img_path, threshold=0.5, rect_th=3, t
     plt.xticks([])
     plt.yticks([])
     #plt.show()
-    plt.savefig(output_dir +'/' + os.path.basename(img_path).replace('.JPG','_prid.JPG'))
+    plt.savefig(os.path.join(output_dir, os.path.basename(img_path).replace('.JPG','_prid.JPG')))
 
 # Test function - FIXME need to add aoc score as defined, Changes at DataLoarder has to be done
 def test(model,  data_loader, epoch, output_path ):
-    file_list = [output_path + '/busesTrain/' +path for path in os.listdir(output_path + '/busesTrain/') if '.JPG' in path]
+    file_list = [os.path.join(output_path, file) for file in os.listdir(output_path) if '.JPG' in file]
     model.eval()
-    output_fol = output_path + '/' + 'ep'+str(epoch)
+    output_fol = os.path.join(output_path, 'ep' + str(epoch))
+
     if not os.path.exists(output_fol):
         os.makedirs(output_fol)
     for img in file_list:
 
-        object_detection_api(model,output_fol,img )
+        object_detection_api(model,output_fol,img, threshold=test_threshold )
 
 # convert from gt format to NN format
 def convert_BB_to_net(x_min,y_min,width,hight):
@@ -89,11 +109,11 @@ def get_transform():
 # dataset for NN
 
 class bassesDataset(Dataset):
-    def __init__(self, root,transforms):
+    def __init__(self, root, transforms):
         self.root = root
         # load all image files, sorting them to
         # ensure that they are aligned
-        self.imgs = [path for path in os.listdir(os.path.join(root, "busesTrain")) if '.JPG' in path]
+        self.imgs = [path for path in os.listdir(os.path.join(root)) if '.JPG' in path]
         d = {}
         with open(root + "/annotationsTrain.txt") as f:
             for line in f:
@@ -105,34 +125,51 @@ class bassesDataset(Dataset):
 
     def __getitem__(self, idx):
         # load images ad masks
-        img_path = os.path.join(self.root, "busesTrain", self.imgs[idx])
+        img_path = os.path.join(self.root, self.imgs[idx])
         img = Image.open(img_path).convert("RGB")
         img_name = os.path.basename(img_path)
         # get bounding box coordinates for each mask
-        boxes = []
-        boxes_raw = np.array(self.gt_dict[img_name])
-        if len(boxes_raw.shape)==1:
+        boxes_list = []
+        labels_list = []
+        labeled_data_raw = np.array(self.gt_dict[img_name])
+
+        if len(labeled_data_raw.shape)==1:
             num_objs =1
-            xmin = boxes_raw[0]
-            ymin = boxes_raw[1]
-            width = boxes_raw[2]
-            hight = boxes_raw[3]
-            boxes.append(convert_BB_to_net(xmin, ymin, width, hight))
+            xmin = labeled_data_raw[0]
+            ymin = labeled_data_raw[1]
+            width = labeled_data_raw[2]
+            hight = labeled_data_raw[3]
+
+            if len(COCO_INSTANCE_CATEGORY_NAMES) is 2:
+                label = 1
+            else:
+                label = labeled_data_raw[4]
+
+            boxes_list.append(convert_BB_to_net(xmin, ymin, width, hight))
+            labels_list.append(label)
         else:
-            num_objs = len(boxes_raw)
+            num_objs = len(labeled_data_raw)
             for i in range(num_objs):
-                pos = boxes_raw[i]
+                pos = labeled_data_raw[i]
                 xmin = pos[0]
                 ymin = pos[1]
                 width = pos[2]
                 hight = pos[3]
-                boxes.append(convert_BB_to_net(xmin,ymin,width,hight))
+
+                if len(COCO_INSTANCE_CATEGORY_NAMES) is 2:
+                    label = 1
+                else:
+                    label = pos[4]
+
+                boxes_list.append(convert_BB_to_net(xmin,ymin,width,hight))
+                labels_list.append(label)
 
         # convert everything into a torch.Tensor
-        boxes = torch.as_tensor(boxes, dtype=torch.float32)
+        boxes = torch.as_tensor(boxes_list, dtype=torch.float32)
         # there is only one class
         #FIXME - change to correct label
-        labels = torch.ones((num_objs,), dtype=torch.int64)
+        # labels = torch.ones((num_objs,), dtype=torch.int64)
+        labels = torch.tensor(labels_list, dtype=torch.int64)
 
         image_id = torch.tensor([idx])
         area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
@@ -160,7 +197,7 @@ def create_model():
 
     # replace the classifier with a new one, that has
     # num_classes which is user-defined
-    num_classes = 2  # 1 class (person) + background #FIXME change to 7 label
+    num_classes = len(COCO_INSTANCE_CATEGORY_NAMES)  # 1 class (person) + background #FIXME change to 7 label::: Changed to length of labels list
     # get number of input features for the classifier
     in_features = model.roi_heads.box_predictor.cls_score.in_features
     # replace the pre-trained head with a new one
@@ -168,17 +205,183 @@ def create_model():
 
     return model
 
+def train_k_means(train_folder_path, is_hsv=True):
+    files_path_list = [os.path.join(train_folder_path, file) for file in os.listdir(train_folder_path) if ".JPG" in file]
 
+    if is_hsv is True:
+        h_all = np.array([0])
+        s_all = np.array([0])
+        v_all = np.array([0])
+
+        for file_path in files_path_list:
+            img = cv2.cvtColor(cv2.imread(file_path), cv2.COLOR_BGR2HSV)
+            h, s, v = cv2.split(img)
+
+            h_all = np.append(h_all, h.flatten())
+            s_all = np.append(s_all, s.flatten())
+            v_all = np.append(v_all, v.flatten())
+
+        h_all = np.delete(h_all, 0)
+        s_all = np.delete(s_all, 0)
+        v_all = np.delete(v_all, 0)
+        hsv_all = np.transpose(np.array([h_all, s_all, v_all]))
+
+        kmeans = KMeans(n_clusters=6)
+        kmeans.fit(hsv_all)
+
+        print(kmeans.cluster_centers_.astype(int))
+
+    else:
+        r_all = np.array([0])
+        g_all = np.array([0])
+        b_all = np.array([0])
+
+        for file_path in files_path_list:
+            img = cv2.cvtColor(cv2.imread(file_path), cv2.COLOR_BGR2RGB)
+
+            r, g, b = cv2.split(img)
+            r_all = np.append(r_all, r.flatten())
+            g_all = np.append(g_all, g.flatten())
+            b_all = np.append(b_all, b.flatten())
+
+        r_all = np.delete(r_all, 0)
+        g_all = np.delete(g_all, 0)
+        b_all = np.delete(b_all, 0)
+
+        rgb_all = np.transpose(np.array([r_all, g_all, b_all]))
+
+        kmeans = KMeans(n_clusters=6)
+        kmeans.fit(rgb_all)
+
+        print(kmeans.cluster_centers_.astype(int))
+        # fig = plt.figure()
+        # ax = Axes3D(fig)
+
+        # for color in kmeans.cluster_centers_.astype(int):
+        #     print(color)
+        #     ax.scatter(color[0], color[1], color[2], color=rgb_to_hex(color))
+        #
+        # plt.show()
+
+    return kmeans.cluster_centers_.astype(int)
+
+def rgb_to_hex(rgb):
+        return '#%02x%02x%02x' % (int(rgb[0]), int(rgb[1]), int(rgb[2]))
+
+# def test_k_means(train_folder_path): #TODO: write the function
+#     files_path_list = [os.path.join(train_folder_path, file) for file in os.listdir(train_folder_path) if ".JPG" in file]
+#
+#     for file_path in files_path_list:
+#         img = cv2.cvtColor(cv2.imread(file_path), cv2.COLOR_BGR2RGB)
+
+def get_surf_features(img, hessian_thr=400):
+    surf = cv2.ORB_create()
+
+    kp, des = surf.detectAndCompute(img, None)
+
+    return kp, des
+
+def train_SURF(train_folder_path):
+    files_path_list = [os.path.join(train_folder_path, file) for file in os.listdir(train_folder_path) if ".JPG" in file]
+    des_label_list = []
+
+    for file_path in files_path_list:
+        img = cv2.imread(file_path, 0)
+
+        kp, des = get_surf_features(img)
+
+        label = get_label_from_basename(os.path.basename(file_path))
+
+        des_label_list.append((label, des))
+
+    return des_label_list
+
+def get_label_from_basename(basename):
+    if 'red' in  basename:
+        return 'red'
+    elif 'blue' in basename:
+        return 'blue'
+    elif 'white' in basename:
+        return 'white'
+    elif 'grey' in basename:
+        return 'grey'
+    elif 'green' in basename:
+        return 'green'
+    elif 'orange' in basename:
+        return 'orange'
+    else:
+        assert False, 'Unknown label for image: ' + basename
+
+def sep_data_to_train_test(data_path, train_perc):
+    files_list = os.listdir(data_path)
+
+    images_list = []
+
+    for file in files_list:
+        if '.JPG' in file:
+            images_list.append(file)
+        elif 'annotationsTrain.txt' in file:
+            annotations_file = file
+
+    train_imgs, test_imgs = get_train_test_imgs(images_list, train_perc)
+
+    train_path = os.path.join(data_path, 'train')
+    test_path = os.path.join(data_path, 'test')
+
+    create_specific_data_dir(data_path, train_path, train_imgs, os.path.join(data_path, annotations_file))
+    create_specific_data_dir(data_path, test_path, test_imgs, os.path.join(data_path, annotations_file))
+
+    return train_path, test_path
+
+def create_specific_data_dir(orig_data_path, new_data_path, data, annotations_file_path):
+    if os.path.exists(new_data_path):
+        is_delete_dir = input(new_data_path + ' already exists. I need to delete it to create new one. Can I?')
+
+        if is_delete_dir.lower() == 'y':
+            shutil.rmtree(new_data_path)
+        else:
+            assert False, 'MEAN PERSON DOES NOT ALLOW ME TO DELETE THE FOLDER!! :('
+
+    os.makedirs(new_data_path)
+
+    create_new_annotation_file(new_data_path, data, annotations_file_path)
+
+    copy_data(orig_data_path, new_data_path, data)
+
+def copy_data(orig_data_path, new_data_path, data):
+    for file in data:
+        shutil.copy2(os.path.join(orig_data_path, file), os.path.join(new_data_path, file))
+
+def create_new_annotation_file(data_path, data, annotations_file_path):
+    new_annotations_file_path = os.path.join(data_path, os.path.basename(annotations_file_path))
+
+    with open (annotations_file_path, 'r') as annotations_fp:
+        with open (new_annotations_file_path, 'w') as new_annotations_fp:
+            for line in annotations_fp:
+                (img_name, _) = line.split(':')
+
+                if img_name in data:
+                    new_annotations_fp.write(line)
+
+def get_train_test_imgs(images_list, train_perc):
+    num_imgs = len(images_list)
+
+    train_imgs_indices = np.random.choice(num_imgs, round(train_perc * num_imgs), replace=False)
+
+    train_imgs = [images_list[i] for i in train_imgs_indices]
+    test_imgs = list(set(images_list) - set(train_imgs))
+
+    return train_imgs, test_imgs
 
 def main():
     # train on the GPU or on the CPU, if a GPU is not available
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-    # our dataset has two classes only - background and person
-    num_classes = 2
+    train_path, test_path = sep_data_to_train_test(data_path, train_perc)
+
     # use our dataset and defined transformations
-    dataset = bassesDataset('train/',get_transform())
-    dataset_test = bassesDataset('test/',get_transform())
+    dataset = bassesDataset(train_path, get_transform())
+    dataset_test = bassesDataset(test_path, get_transform())
 
     # split the dataset in train and test set
     #FIXME - an option for split train test from one folder
@@ -187,7 +390,7 @@ def main():
     #dataset_test = torch.utils.data.Subset(dataset_test, indices[-50:])
 
     # define training and validation data loaders
-    data_loader = torch.utils.data.DataLoader(
+    data_loader_train = torch.utils.data.DataLoader(
         dataset, batch_size=1, shuffle=True, num_workers=1,
         collate_fn=utils.collate_fn)
     # currently not in use
@@ -211,24 +414,24 @@ def main():
                                                    step_size=3,
                                                    gamma=0.1)
 
-    # let's train it for 10 epochs #FIXME - can set for less
-    num_epochs = 10
-    # path for the test function - to read the images inside "bussesTrian" and to save test images:
-    output_path = "/Users/omriefroni/PycharmProjects/comp_vision_ex2/test"
     for epoch in range(num_epochs):
         # train for one epoch, printing every 10 iterations
-        train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq=10)
-        # update the learning rate
+        train_one_epoch(model, optimizer, data_loader_train, device, epoch, print_freq=10)
+        # # update the learning rate
         lr_scheduler.step()
         # evaluate on the test dataset
-        #evaluate(model, data_loader_test, device=device) # old funcrion from the tutorial - i didnt use
+        # evaluate(model, data_loader_test, device=device) # old funcrion from the tutorial - i didnt use
         # Run the model on the test images and save predicted image.
-        test(model, data_loader, epoch, output_path)
+        test(model, data_loader_test, epoch, test_path)
     print("That's it!")
+
     # save the model for reloading after
-    torch.save(model.state_dict(), 'nn_busses_2.pt')
+    torch.save(model.state_dict(), model_file_name)
 
 
-
-main()
+if __name__ == "__main__":
+    # train_SURF(train_surf_folder_path)
+    # train_k_means(train_color_folder_path, is_hsv=False)
+    # test_k_means(test_color_folder_path)
+    main()
 
