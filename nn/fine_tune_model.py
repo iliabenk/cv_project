@@ -40,7 +40,7 @@ num_epochs = 1
 
 test_threshold = 0.9
 
-num_train_per_label = 8
+num_train_per_label = 11
 surf_data_path = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/all_boxes"
 
 ########### end configs
@@ -304,10 +304,14 @@ def train_SURF(train_folder_path):
     print(amount_labels)
     return des_label_list
 
-def test_SURF(test_surf_folder_path, des_label_list):
+def test_SURF(test_surf_folder_path, des_label_list, is_get_statistics=False):
     files_path_list = [os.path.join(test_surf_folder_path, file) for file in os.listdir(test_surf_folder_path) if ".JPG" in file]
     num_correct_pred = 0
     num_test_imgs = len(files_path_list)
+
+    if is_get_statistics:
+        correct_preds_prob = []
+        wrong_preds_prob = []
 
     for file_path in files_path_list:
         img = cv2.imread(file_path, 0)
@@ -338,7 +342,32 @@ def test_SURF(test_surf_folder_path, des_label_list):
         print(os.path.basename(file_path) + ':  ' + best_score_label + '    Is correct prediction:  ' + str(is_correct_pred))
         print()
 
+        if is_get_statistics:
+            if is_correct_pred:
+                correct_preds_prob.append(prob_d[best_score_label])
+            else:
+                wrong_preds_prob.append(prob_d[best_score_label])
+
+
     print('Total correct predictions: ' + str(num_correct_pred) + ' out of: ' + str(num_test_imgs) + ' test images')
+
+    if is_get_statistics:
+        total_correct_preds = len(correct_preds_prob)
+        total_wrong_preds = len(wrong_preds_prob)
+
+        mean_correct_prob = np.mean(correct_preds_prob)
+        mean_wrong_prob = np.mean(wrong_preds_prob)
+
+        std_correct_prob = np.std(correct_preds_prob)
+        std_wrong_prob = np.std(wrong_preds_prob)
+
+        print('Total correct predictions: ' + str(total_correct_preds))
+        print('Mean probability of correct predictions: ' + str(mean_correct_prob))
+        print('Std probability of correct predictions: ' + str(std_correct_prob))
+
+        print('Total probability of wrong predictions: ' + str(total_wrong_preds))
+        print('Mean probability of wrong predictions: ' + str(mean_wrong_prob))
+        print('Std probability of wrong predictions: ' + str(std_wrong_prob))
 
 def get_best_label_candidate(score):
         best_score_label = 'none'
@@ -554,8 +583,8 @@ if __name__ == "__main__":
 
     t = time.time()
 
-    test_SURF(os.path.join(surf_data_path, 'test'), des_label_list)
-    # test_SURF(os.path.join(surf_data_path), des_label_list)
+    # test_SURF(os.path.join(surf_data_path, 'test'), des_label_list, is_get_statistics=True)
+    test_SURF(os.path.join(surf_data_path), des_label_list, is_get_statistics=True)
 
     print(str(time.time() - t) + ' secs for test_SURF')
 
