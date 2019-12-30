@@ -30,9 +30,6 @@ model_file_name = "nn_busses_2.pt"
 train_color_folder_path = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/boxes"
 test_color_folder_path = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/boxes_test"
 
-train_surf_folder_path = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/boxes"
-test_surf_folder_path = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/boxes_test"
-
 # Defines the labels for the model, change to colors if you want.
 COCO_INSTANCE_CATEGORY_NAMES = ['background','bus']
 # COCO_INSTANCE_CATEGORY_NAMES = ['background', 'green', 'yellow', 'white', 'grey', 'blue', 'red']
@@ -40,8 +37,14 @@ num_epochs = 1
 
 test_threshold = 0.9
 
-num_train_per_label = 11
+num_train_per_label = 5
+is_train_surf_on_all_images = True
+is_random_amount_surf_train_per_label = False
+is_get_statistics = True
+min_num_imgs_for_label = 5
 surf_data_path = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/all_boxes"
+surf_train_data = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/train_boxes"
+surf_test_data = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/test_boxes"
 
 ########### end configs
 
@@ -312,6 +315,7 @@ def test_SURF(test_surf_folder_path, des_label_list, is_get_statistics=False):
     if is_get_statistics:
         correct_preds_prob = []
         wrong_preds_prob = []
+        wrong_pred_images = []
 
     for file_path in files_path_list:
         img = cv2.imread(file_path, 0)
@@ -322,12 +326,16 @@ def test_SURF(test_surf_folder_path, des_label_list, is_get_statistics=False):
         is_found_good_candidate = False
 
         score_d = {'blue': 0, 'red': 0, 'white': 0, 'green': 0, 'orange': 0, 'grey': 0}
+        amount_train_per_label_d = {'blue': 0, 'red': 0, 'white': 0, 'green': 0, 'orange': 0, 'grey': 0}
 
         for train_des_label in des_label_list:
             label_train = train_des_label[0]
             des_train = train_des_label[1]
+            amount_train_per_label_d[label_train] += 1 #TODO only for testing, in submission these values are already known
 
             score_d[label_train] += get_amount_good_matching_points(des_test, des_train, ratio=ratio, k=2)
+
+        score_d = {label:(value / amount_train_per_label_d[label]) for (label, value) in score_d.items()}
 
         prob_d = convert_score_to_probability(score_d)
 
@@ -347,6 +355,7 @@ def test_SURF(test_surf_folder_path, des_label_list, is_get_statistics=False):
                 correct_preds_prob.append(prob_d[best_score_label])
             else:
                 wrong_preds_prob.append(prob_d[best_score_label])
+                wrong_pred_images.append(os.path.basename(file_path))
 
 
     print('Total correct predictions: ' + str(num_correct_pred) + ' out of: ' + str(num_test_imgs) + ' test images')
@@ -361,13 +370,37 @@ def test_SURF(test_surf_folder_path, des_label_list, is_get_statistics=False):
         std_correct_prob = np.std(correct_preds_prob)
         std_wrong_prob = np.std(wrong_preds_prob)
 
+        lowest_correct_prob = np.min(correct_preds_prob)
+        highest_wrong_prob = np.max(wrong_preds_prob)
+
+        num_correct_pred_below_30_perc_prob = sum(prob < 0.25 for prob in correct_preds_prob)
+        num_wrong_pred_above_30_perc_prob = sum(prob >= 0.25 for prob in wrong_preds_prob)
+
+        print('Amount of training data:')
+        print(amount_train_per_label_d)
+        print()
+
+        print('********** Correct predictions statistics ***********')
         print('Total correct predictions: ' + str(total_correct_preds))
         print('Mean probability of correct predictions: ' + str(mean_correct_prob))
         print('Std probability of correct predictions: ' + str(std_correct_prob))
+        print('Lowest probability of correct predictions: ' + str(lowest_correct_prob))
+        print('Number of correct preds with probability below 0.25: ' + str(num_correct_pred_below_30_perc_prob))
 
+        print()
+        print('********** Wrong predictions statistics ***********')
         print('Total probability of wrong predictions: ' + str(total_wrong_preds))
         print('Mean probability of wrong predictions: ' + str(mean_wrong_prob))
         print('Std probability of wrong predictions: ' + str(std_wrong_prob))
+        print('Highest probability of wrong predictions: ' + str(highest_wrong_prob))
+        print('Number of wrong preds with probability above 0.25: ' + str(num_wrong_pred_above_30_perc_prob))
+
+        print()
+        print('Wrong predcition on images:')
+
+        for file in wrong_pred_images:
+            print(file)
+
 
 def get_best_label_candidate(score):
         best_score_label = 'none'
@@ -425,7 +458,7 @@ def get_label_from_basename(basename):
     else:
         assert False, 'Unknown label for image: ' + basename
 
-def create_train_test_folders_surf(surf_data_path, num_train_per_label):
+def create_train_test_folders_surf(surf_data_path, num_train_per_label, min_num_imgs_for_label, is_train_surf_on_all_images=False, is_random_amount_surf_train_per_label=False):
     files_list = [file for file in os.listdir((surf_data_path)) if '.JPG' in file]
 
     files_dict_list = {}
@@ -436,9 +469,21 @@ def create_train_test_folders_surf(surf_data_path, num_train_per_label):
         files_dict_list[label] = [file for file in files_list if label in file]
 
         num_imgs = len(files_dict_list[label])
-        train_imgs_indices = np.random.choice(num_imgs, num_train_per_label, replace=False)
-        train_imgs = [files_dict_list[label][i] for i in train_imgs_indices]
-        test_imgs = list(set(files_dict_list[label]) - set(train_imgs))
+
+        if is_train_surf_on_all_images is True: # -1 indicates to train on all images
+            train_imgs = files_dict_list[label]
+            test_imgs = files_dict_list[label]
+        elif is_random_amount_surf_train_per_label is True:
+            assert min_num_imgs_for_label >= 5, 'Need at least 5 surf train images for good prediction'
+
+            random_num_of_train_imgs = np.random.choice(range(5, min_num_imgs_for_label + 1), 1)
+            train_imgs_indices = np.random.choice(num_imgs, random_num_of_train_imgs, replace=False)
+            train_imgs = [files_dict_list[label][i] for i in train_imgs_indices]
+            test_imgs = list(set(files_dict_list[label]) - set(train_imgs))
+        else:
+            train_imgs_indices = np.random.choice(num_imgs, num_train_per_label, replace=False)
+            train_imgs = [files_dict_list[label][i] for i in train_imgs_indices]
+            test_imgs = list(set(files_dict_list[label]) - set(train_imgs))
 
         create_surf_train_test_dir(surf_data_path, os.path.join(surf_data_path, 'train'), train_imgs, label == labels[0])
         create_surf_train_test_dir(surf_data_path, os.path.join(surf_data_path, 'test'), test_imgs, label == labels[0])
@@ -578,19 +623,34 @@ def main():
 
 
 if __name__ == "__main__":
-    create_train_test_folders_surf(surf_data_path, num_train_per_label)
-    des_label_list = train_SURF(os.path.join(surf_data_path, 'train'))
+    ##### create train & test automatically from all images #########
+
+    # create_train_test_folders_surf(surf_data_path, num_train_per_label, min_num_imgs_for_label, is_train_surf_on_all_images=is_train_surf_on_all_images,\
+    #                                is_random_amount_surf_train_per_label=is_random_amount_surf_train_per_label)
+
+    # des_label_list = train_SURF(os.path.join(surf_data_path, 'train'))
+    #
+    # t = time.time()
+    #
+    # test_SURF(os.path.join(surf_data_path, 'test'), des_label_list, is_get_statistics=is_get_statistics)
+    # # test_SURF(os.path.join(surf_data_path), des_label_list, is_get_statistics=True)
+    #
+    # print(str(time.time() - t) + ' secs for test_SURF')
+
+
+    ########## Run on pre-made train & test surf images ############
+
+    create_train_test_folders_surf(surf_train_data, num_train_per_label, min_num_imgs_for_label, is_train_surf_on_all_images=is_train_surf_on_all_images,\
+                                   is_random_amount_surf_train_per_label=is_random_amount_surf_train_per_label)
+
+    des_label_list = train_SURF(os.path.join(surf_train_data, 'train'))
 
     t = time.time()
 
-    # test_SURF(os.path.join(surf_data_path, 'test'), des_label_list, is_get_statistics=True)
-    test_SURF(os.path.join(surf_data_path), des_label_list, is_get_statistics=True)
+    test_SURF(surf_test_data, des_label_list, is_get_statistics=is_get_statistics)
+    # test_SURF(os.path.join(surf_data_path), des_label_list, is_get_statistics=True)
 
     print(str(time.time() - t) + ' secs for test_SURF')
 
-
-    # test_SURF(os.path.join(surf_data_path), des_label_list)
-    # train_k_means(train_color_folder_path, is_hsv=False)
-    # test_k_means(test_color_folder_path)
     # main()
 
