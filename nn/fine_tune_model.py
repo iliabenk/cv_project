@@ -19,6 +19,8 @@ import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 from mpl_toolkits.mplot3d import Axes3D
 import shutil
+import operator
+import time
 
 ########### start configs
 data_path = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/all_images"
@@ -37,6 +39,9 @@ COCO_INSTANCE_CATEGORY_NAMES = ['background','bus']
 num_epochs = 1
 
 test_threshold = 0.9
+
+num_train_per_label = 8
+surf_data_path = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/all_boxes"
 
 ########### end configs
 
@@ -134,7 +139,7 @@ class bassesDataset(Dataset):
         labeled_data_raw = np.array(self.gt_dict[img_name])
 
         if len(labeled_data_raw.shape)==1:
-            num_objs =1
+            num_objs = 1
             xmin = labeled_data_raw[0]
             ymin = labeled_data_raw[1]
             width = labeled_data_raw[2]
@@ -275,7 +280,7 @@ def rgb_to_hex(rgb):
 #         img = cv2.cvtColor(cv2.imread(file_path), cv2.COLOR_BGR2RGB)
 
 def get_surf_features(img, hessian_thr=400):
-    surf = cv2.ORB_create()
+    surf = cv2.KAZE_create()
 
     kp, des = surf.detectAndCompute(img, None)
 
@@ -284,17 +289,96 @@ def get_surf_features(img, hessian_thr=400):
 def train_SURF(train_folder_path):
     files_path_list = [os.path.join(train_folder_path, file) for file in os.listdir(train_folder_path) if ".JPG" in file]
     des_label_list = []
+    amount_labels = {'blue': 0, 'red': 0, 'white': 0, 'green': 0, 'orange': 0, 'grey': 0}
 
     for file_path in files_path_list:
         img = cv2.imread(file_path, 0)
 
-        kp, des = get_surf_features(img)
+        _, des = get_surf_features(img)
 
         label = get_label_from_basename(os.path.basename(file_path))
+        amount_labels[label] += 1
 
         des_label_list.append((label, des))
 
+    print(amount_labels)
     return des_label_list
+
+def test_SURF(test_surf_folder_path, des_label_list):
+    files_path_list = [os.path.join(test_surf_folder_path, file) for file in os.listdir(test_surf_folder_path) if ".JPG" in file]
+    num_correct_pred = 0
+    num_test_imgs = len(files_path_list)
+
+    for file_path in files_path_list:
+        img = cv2.imread(file_path, 0)
+
+        _, des_test = get_surf_features(img)
+
+        ratio = 0.75
+        is_found_good_candidate = False
+
+        score_d = {'blue': 0, 'red': 0, 'white': 0, 'green': 0, 'orange': 0, 'grey': 0}
+
+        for train_des_label in des_label_list:
+            label_train = train_des_label[0]
+            des_train = train_des_label[1]
+
+            score_d[label_train] += get_amount_good_matching_points(des_test, des_train, ratio=ratio, k=2)
+
+        prob_d = convert_score_to_probability(score_d)
+
+        best_score_label = get_best_label_candidate(prob_d)
+
+        is_correct_pred = (best_score_label in os.path.basename(file_path))
+
+        if is_correct_pred:
+            num_correct_pred += 1
+
+        print(prob_d)
+        print(os.path.basename(file_path) + ':  ' + best_score_label + '    Is correct prediction:  ' + str(is_correct_pred))
+        print()
+
+    print('Total correct predictions: ' + str(num_correct_pred) + ' out of: ' + str(num_test_imgs) + ' test images')
+
+def get_best_label_candidate(score):
+        best_score_label = 'none'
+        best_score = 0
+
+        for label, label_score in score.items():
+            if label_score > best_score:
+                best_score = label_score
+                best_score_label = label
+
+        second_best_score = 0
+
+        for label, label_score in score.items():
+            if (label_score > second_best_score) and (label != best_score_label):
+                second_best_score = label_score
+
+        if second_best_score < 0.75 * best_score:
+            is_found_good_candidate = True #TODO: decide on measure for good candidate
+
+        return best_score_label
+
+def convert_score_to_probability(score):
+    total_scores = sum(score.values())
+    score_prob = {key:(score_value / total_scores) for (key,score_value) in score.items()}
+
+    return score_prob
+
+def get_amount_good_matching_points(des1, des2, ratio=0.75, k=2):
+    # BFMatcher with default params
+    bf = cv2.BFMatcher()
+    matches = bf.knnMatch(des1, des2, k=2)
+
+    # Apply ratio test
+    good_matches = 0
+
+    for m,n in matches:
+        if m.distance < ratio * n.distance:
+            good_matches += 1
+
+    return good_matches
 
 def get_label_from_basename(basename):
     if 'red' in  basename:
@@ -311,6 +395,40 @@ def get_label_from_basename(basename):
         return 'orange'
     else:
         assert False, 'Unknown label for image: ' + basename
+
+def create_train_test_folders_surf(surf_data_path, num_train_per_label):
+    files_list = [file for file in os.listdir((surf_data_path)) if '.JPG' in file]
+
+    files_dict_list = {}
+
+    labels = ['red', 'blue', 'green', 'orange', 'white', 'grey']
+
+    for label in labels:
+        files_dict_list[label] = [file for file in files_list if label in file]
+
+        num_imgs = len(files_dict_list[label])
+        train_imgs_indices = np.random.choice(num_imgs, num_train_per_label, replace=False)
+        train_imgs = [files_dict_list[label][i] for i in train_imgs_indices]
+        test_imgs = list(set(files_dict_list[label]) - set(train_imgs))
+
+        create_surf_train_test_dir(surf_data_path, os.path.join(surf_data_path, 'train'), train_imgs, label == labels[0])
+        create_surf_train_test_dir(surf_data_path, os.path.join(surf_data_path, 'test'), test_imgs, label == labels[0])
+
+
+def create_surf_train_test_dir(orig_data_path, new_data_path, data, is_create_new_dir):
+    if is_create_new_dir is True:
+        if os.path.exists(new_data_path):
+            is_delete_dir = input(new_data_path + ' already exists. I need to delete it to create new one. Can I?')
+
+            if is_delete_dir.lower() == 'y':
+                shutil.rmtree(new_data_path)
+            else:
+                assert False, 'MEAN PERSON DOES NOT ALLOW ME TO DELETE THE FOLDER!! :('
+
+        os.makedirs(new_data_path)
+
+    copy_data(orig_data_path, new_data_path, data)
+
 
 def sep_data_to_train_test(data_path, train_perc):
     files_list = os.listdir(data_path)
@@ -334,6 +452,7 @@ def sep_data_to_train_test(data_path, train_perc):
     return train_path, test_path
 
 def create_specific_data_dir(orig_data_path, new_data_path, data, annotations_file_path):
+
     if os.path.exists(new_data_path):
         is_delete_dir = input(new_data_path + ' already exists. I need to delete it to create new one. Can I?')
 
@@ -430,8 +549,19 @@ def main():
 
 
 if __name__ == "__main__":
-    # train_SURF(train_surf_folder_path)
+    create_train_test_folders_surf(surf_data_path, num_train_per_label)
+    des_label_list = train_SURF(os.path.join(surf_data_path, 'train'))
+
+    t = time.time()
+
+    test_SURF(os.path.join(surf_data_path, 'test'), des_label_list)
+    # test_SURF(os.path.join(surf_data_path), des_label_list)
+
+    print(str(time.time() - t) + ' secs for test_SURF')
+
+
+    # test_SURF(os.path.join(surf_data_path), des_label_list)
     # train_k_means(train_color_folder_path, is_hsv=False)
     # test_k_means(test_color_folder_path)
-    main()
+    # main()
 
