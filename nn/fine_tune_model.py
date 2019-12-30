@@ -40,9 +40,9 @@ test_threshold = 0.9
 num_train_per_label = 8
 is_train_surf_on_all_images = False
 is_random_amount_surf_train_per_label = False
-is_get_statistics = False
+is_get_statistics = True
 min_num_imgs_for_label = 5
-is_decide_by_total_or_single_match = 'single'
+is_decide_by_total_or_single_match = 'total'
 surf_data_path = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/all_boxes"
 surf_train_data = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/train_boxes"
 surf_test_data = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/test_boxes"
@@ -328,7 +328,7 @@ def test_SURF(test_surf_folder_path, des_label_list, is_decide_by_total_or_singl
 
         max_good_matching_points = 0
         total_good_matches = 0
-        good_matches_thr = 50
+        good_matches_thr = 0
 
         while total_good_matches == 0:
             score_d = {'blue': 0, 'red': 0, 'white': 0, 'green': 0, 'orange': 0, 'grey': 0}
@@ -337,12 +337,14 @@ def test_SURF(test_surf_folder_path, des_label_list, is_decide_by_total_or_singl
             for train_des_label in des_label_list:
                 label_train = train_des_label[0]
                 des_train = train_des_label[1]
-                amount_train_per_label_d[label_train] += 1 #TODO only for testing, in submission these values are already known
 
-                print(label_train) #for debug
+                # print(label_train) #for debug
                 amount_good_matching_points = get_amount_good_matching_points(des_test, des_train, ratio=ratio, k=2, thr=good_matches_thr)
                 score_d[label_train] += amount_good_matching_points
                 total_good_matches += amount_good_matching_points
+
+                if amount_good_matching_points != 0:
+                    amount_train_per_label_d[label_train] += 1 #TODO only for testing, in submission these values are already known
 
                 if max_good_matching_points < amount_good_matching_points:
                     max_good_matching_points = amount_good_matching_points
@@ -351,7 +353,7 @@ def test_SURF(test_surf_folder_path, des_label_list, is_decide_by_total_or_singl
             print('is_decide_by_total_or_single_match: ' + is_decide_by_total_or_single_match)
 
             if is_decide_by_total_or_single_match == 'total' and total_good_matches != 0:
-                score_d = {label:(value / amount_train_per_label_d[label]) for (label, value) in score_d.items()}
+                score_d = {label:(value / amount_train_per_label_d[label]) for (label, value) in score_d.items() if amount_train_per_label_d[label] != 0}
                 prob_d = convert_score_to_probability(score_d)
                 best_score_label = get_best_label_candidate(prob_d)
             elif 'single':
@@ -456,12 +458,23 @@ def get_amount_good_matching_points(des1, des2, ratio=0.75, k=2, thr=50):
 
     # Apply ratio test
     good_matches = 0
+    max_m_distance = 0
+    min_m_distance = 100
 
     for m,n in matches:
-        if m.distance < ratio * n.distance:
+        if m.distance < ratio * n.distance and m.distance:
             good_matches += 1
 
-    print(good_matches) #for debug
+    #         if m.distance > max_m_distance:
+    #             max_m_distance = m.distance
+    #
+    #         if m.distance < min_m_distance:
+    #             min_m_distance = m.distance
+    #
+    # print('max_m_distance: ' + str(max_m_distance)) #debug
+    # print('min_m_distance: ' + str(min_m_distance)) #debug
+
+    # print(good_matches) #for debug
 
     if good_matches < thr:
         good_matches = 0
@@ -502,7 +515,7 @@ def create_train_test_folders_surf(surf_data_path, num_train_per_label, min_num_
         elif is_random_amount_surf_train_per_label is True:
             assert min_num_imgs_for_label >= 5, 'Need at least 5 surf train images for good prediction'
 
-            random_num_of_train_imgs = np.random.choice(range(5, min_num_imgs_for_label + 1), 1)
+            random_num_of_train_imgs = np.random.choice(range(5, num_train_per_label + 1), 1)
             train_imgs_indices = np.random.choice(num_imgs, random_num_of_train_imgs, replace=False)
             train_imgs = [files_dict_list[label][i] for i in train_imgs_indices]
             test_imgs = list(set(files_dict_list[label]) - set(train_imgs))
