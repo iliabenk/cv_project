@@ -37,9 +37,9 @@ num_epochs = 1
 
 test_threshold = 0.9
 
-num_train_per_label = 12
+num_train_per_label = 2
 is_train_surf_on_all_images = False
-is_random_amount_surf_train_per_label = True
+is_random_amount_surf_train_per_label = False
 is_get_statistics = True
 min_num_imgs_for_label = 5
 is_decide_by_total_or_single_match = 'total'
@@ -425,38 +425,30 @@ def test_SURF(test_surf_folder_path, des_label_list, is_decide_by_total_or_singl
             print(file)
 
 
-def test_color(test_folder_path, train_folder_path):
+def test_color(test_folder_path, kmeans_cluster):
     files_path_list = [os.path.join(test_folder_path, file) for file in os.listdir(test_folder_path) if ".JPG" in file]
-    train_files_path_list = [os.path.join(train_folder_path, file) for file in os.listdir(train_folder_path) if ".JPG" in file]
     num_correct_pred = 0
     num_test_imgs = len(files_path_list)
 
     for file_path in files_path_list:
         best_score_label = 'none'
-        min_error = 10**10
 
         img = cv2.imread(file_path)
 
-        for train_img_path in train_files_path_list:
-            train_img = cv2.imread(train_img_path)
-            label_train = get_label_from_basename(train_img_path)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
-            diff_squared_img = (train_img - img)**2
-            error = np.sum(diff_squared_img)
+        print(os.path.basename(file_path))
+        print(kmeans_cluster.predict(img))
 
-            if error < min_error:
-                min_error = error
-                best_score_label = label_train
+        # is_correct_pred = (best_score_label in os.path.basename(file_path))
 
-        is_correct_pred = (best_score_label in os.path.basename(file_path))
-
-        if is_correct_pred:
-            num_correct_pred += 1
-
-        print(os.path.basename(file_path) + ':  ' + best_score_label + '    Is correct prediction:  ' + str(is_correct_pred))
+        # if is_correct_pred:
+        #     num_correct_pred += 1
+        #
+        # print(os.path.basename(file_path) + ':  ' + best_score_label + '    Is correct prediction:  ' + str(is_correct_pred))
 
 
-    print('Total correct predictions: ' + str(num_correct_pred) + ' out of: ' + str(num_test_imgs) + ' test images')
+    # print('Total correct predictions: ' + str(num_correct_pred) + ' out of: ' + str(num_test_imgs) + ' test images')
 
 
 def get_best_label_candidate(score):
@@ -782,12 +774,45 @@ if __name__ == "__main__":
 
     # des_label_list = train_SURF(os.path.join(surf_data_path, 'train'))
 
-    t = time.time()
+    ##test
+    files_path_list = [os.path.join(os.path.join(surf_data_path, 'train'), file) for file in os.listdir(os.path.join(surf_data_path, 'train')) if ".JPG" in file]
 
-    test_color(os.path.join(surf_data_path, 'test'), os.path.join(surf_data_path, 'train'))
+    for file_path in files_path_list:
+        img = cv2.imread(file_path, 0)
+
+        th, im_th = cv2.threshold(img, 150, 255, cv2.THRESH_BINARY_INV);
+
+        # Copy the thresholded image.
+        im_floodfill = im_th.copy()
+
+        # Mask used to flood filling.
+        # Notice the size needs to be 2 pixels than the image.
+        h, w = im_th.shape[:2]
+        mask = np.zeros((h+2, w+2), np.uint8)
+
+        # Floodfill from point (0, 0)
+        cv2.floodFill(im_floodfill, mask, (0,0), 255);
+
+        # Invert floodfilled image
+        im_floodfill_inv = cv2.bitwise_not(im_floodfill)
+
+        # Combine the two images to get the foreground.
+        im_out = im_th | im_floodfill_inv
+
+        plt.imshow(im_floodfill_inv)
+
+
+    ##test
+
+    # kmeans_cluster = train_k_means(os.path.join(surf_data_path, 'train'), is_hsv=True)
+    #
+    # t = time.time()
+    #
+    # test_color(os.path.join(surf_data_path, 'test'), kmeans_cluster)
     # test_SURF(os.path.join(surf_data_path), des_label_list, is_get_statistics=True)
-
-    print(str(time.time() - t) + ' secs for test_color')
+    #
+    # print(str(time.time() - t) + ' secs for test_color')
 
     # main()
+
 
