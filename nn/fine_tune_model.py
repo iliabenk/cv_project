@@ -37,9 +37,9 @@ num_epochs = 1
 
 test_threshold = 0.9
 
-num_train_per_label = 8
+num_train_per_label = 12
 is_train_surf_on_all_images = False
-is_random_amount_surf_train_per_label = False
+is_random_amount_surf_train_per_label = True
 is_get_statistics = True
 min_num_imgs_for_label = 5
 is_decide_by_total_or_single_match = 'total'
@@ -425,6 +425,40 @@ def test_SURF(test_surf_folder_path, des_label_list, is_decide_by_total_or_singl
             print(file)
 
 
+def test_color(test_folder_path, train_folder_path):
+    files_path_list = [os.path.join(test_folder_path, file) for file in os.listdir(test_folder_path) if ".JPG" in file]
+    train_files_path_list = [os.path.join(train_folder_path, file) for file in os.listdir(train_folder_path) if ".JPG" in file]
+    num_correct_pred = 0
+    num_test_imgs = len(files_path_list)
+
+    for file_path in files_path_list:
+        best_score_label = 'none'
+        min_error = 10**10
+
+        img = cv2.imread(file_path)
+
+        for train_img_path in train_files_path_list:
+            train_img = cv2.imread(train_img_path)
+            label_train = get_label_from_basename(train_img_path)
+
+            diff_squared_img = (train_img - img)**2
+            error = np.sum(diff_squared_img)
+
+            if error < min_error:
+                min_error = error
+                best_score_label = label_train
+
+        is_correct_pred = (best_score_label in os.path.basename(file_path))
+
+        if is_correct_pred:
+            num_correct_pred += 1
+
+        print(os.path.basename(file_path) + ':  ' + best_score_label + '    Is correct prediction:  ' + str(is_correct_pred))
+
+
+    print('Total correct predictions: ' + str(num_correct_pred) + ' out of: ' + str(num_test_imgs) + ' test images')
+
+
 def get_best_label_candidate(score):
         best_score_label = 'none'
         best_score = 0
@@ -526,6 +560,56 @@ def create_train_test_folders_surf(surf_data_path, num_train_per_label, min_num_
 
         create_surf_train_test_dir(surf_data_path, os.path.join(surf_data_path, 'train'), train_imgs, label == labels[0])
         create_surf_train_test_dir(surf_data_path, os.path.join(surf_data_path, 'test'), test_imgs, label == labels[0])
+
+
+def create_train_test_folders_color(surf_data_path, num_train_per_label, min_num_imgs_for_label, is_train_surf_on_all_images=False, is_random_amount_surf_train_per_label=False):
+    files_list = [file for file in os.listdir((surf_data_path)) if '.JPG' in file]
+
+    files_dict_list = {}
+
+    labels = ['red', 'blue', 'green', 'orange', 'white', 'grey']
+
+    for label in labels:
+        files_dict_list[label] = [file for file in files_list if label in file]
+
+        num_imgs = len(files_dict_list[label])
+
+        if is_train_surf_on_all_images is True: # -1 indicates to train on all images
+            train_imgs = files_dict_list[label]
+            test_imgs = files_dict_list[label]
+        elif is_random_amount_surf_train_per_label is True:
+            assert min_num_imgs_for_label >= 5, 'Need at least 5 surf train images for good prediction'
+
+            random_num_of_train_imgs = np.random.choice(range(5, num_train_per_label + 1), 1)
+            train_imgs_indices = np.random.choice(num_imgs, random_num_of_train_imgs, replace=False)
+            train_imgs = [files_dict_list[label][i] for i in train_imgs_indices]
+            test_imgs = list(set(files_dict_list[label]) - set(train_imgs))
+        else:
+            train_imgs_indices = np.random.choice(num_imgs, num_train_per_label, replace=False)
+            train_imgs = [files_dict_list[label][i] for i in train_imgs_indices]
+            test_imgs = list(set(files_dict_list[label]) - set(train_imgs))
+
+        create_color_train_test_dir(surf_data_path, os.path.join(surf_data_path, 'train'), train_imgs, label == labels[0])
+        create_color_train_test_dir(surf_data_path, os.path.join(surf_data_path, 'test'), test_imgs, label == labels[0])
+
+
+def create_color_train_test_dir(orig_data_path, new_data_path, data, is_create_new_dir):
+    if is_create_new_dir is True:
+        if os.path.exists(new_data_path):
+            is_delete_dir = input(new_data_path + ' already exists. I need to delete it to create new one. Can I?')
+
+            if is_delete_dir.lower() == 'y':
+                shutil.rmtree(new_data_path)
+            else:
+                assert False, 'MEAN PERSON DOES NOT ALLOW ME TO DELETE THE FOLDER!! :('
+
+        os.makedirs(new_data_path)
+
+    for file in data:
+        img = cv2.imread(os.path.join(orig_data_path, file))  # Read image with cv2
+        # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # Convert to RGB
+        img = cv2.resize(img, (800, 600))
+        cv2.imwrite(os.path.join(new_data_path, file), img)
 
 
 def create_surf_train_test_dir(orig_data_path, new_data_path, data, is_create_new_dir):
@@ -664,17 +748,17 @@ def main():
 if __name__ == "__main__":
     ##### create train & test automatically from all images #########
 
-    create_train_test_folders_surf(surf_data_path, num_train_per_label, min_num_imgs_for_label, is_train_surf_on_all_images=is_train_surf_on_all_images,\
-                                   is_random_amount_surf_train_per_label=is_random_amount_surf_train_per_label)
-
-    des_label_list = train_SURF(os.path.join(surf_data_path, 'train'))
-
-    t = time.time()
-
-    test_SURF(os.path.join(surf_data_path, 'test'), des_label_list, is_decide_by_total_or_single_match, is_get_statistics=is_get_statistics)
-    # test_SURF(os.path.join(surf_data_path), des_label_list, is_get_statistics=True)
-
-    print(str(time.time() - t) + ' secs for test_SURF')
+    # create_train_test_folders_surf(surf_data_path, num_train_per_label, min_num_imgs_for_label, is_train_surf_on_all_images=is_train_surf_on_all_images,\
+    #                                is_random_amount_surf_train_per_label=is_random_amount_surf_train_per_label)
+    #
+    # des_label_list = train_SURF(os.path.join(surf_data_path, 'train'))
+    #
+    # t = time.time()
+    #
+    # test_SURF(os.path.join(surf_data_path, 'test'), des_label_list, is_decide_by_total_or_single_match, is_get_statistics=is_get_statistics)
+    # # test_SURF(os.path.join(surf_data_path), des_label_list, is_get_statistics=True)
+    #
+    # print(str(time.time() - t) + ' secs for test_SURF')
 
 
     ########## Run on pre-made train & test surf images ############
@@ -690,6 +774,20 @@ if __name__ == "__main__":
     # # test_SURF(os.path.join(surf_data_path), des_label_list, is_get_statistics=True)
     #
     # print(str(time.time() - t) + ' secs for test_SURF')
+
+    ######################### image template matching
+
+    create_train_test_folders_color(surf_data_path, num_train_per_label, min_num_imgs_for_label, is_train_surf_on_all_images=is_train_surf_on_all_images,\
+                                   is_random_amount_surf_train_per_label=is_random_amount_surf_train_per_label)
+
+    # des_label_list = train_SURF(os.path.join(surf_data_path, 'train'))
+
+    t = time.time()
+
+    test_color(os.path.join(surf_data_path, 'test'), os.path.join(surf_data_path, 'train'))
+    # test_SURF(os.path.join(surf_data_path), des_label_list, is_get_statistics=True)
+
+    print(str(time.time() - t) + ' secs for test_color')
 
     # main()
 
