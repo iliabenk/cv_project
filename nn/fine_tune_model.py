@@ -476,7 +476,7 @@ def create_train_test_folders_surf(surf_data_path, num_train_per_label, min_num_
         elif is_random_amount_surf_train_per_label is True:
             assert min_num_imgs_for_label >= 5, 'Need at least 5 surf train images for good prediction'
 
-            random_num_of_train_imgs = np.random.choice(range(5, min_num_imgs_for_label + 1), 1)
+            random_num_of_train_imgs = np.random.choice(range(5, num_train_per_label + 1), 1)
             train_imgs_indices = np.random.choice(num_imgs, random_num_of_train_imgs, replace=False)
             train_imgs = [files_dict_list[label][i] for i in train_imgs_indices]
             test_imgs = list(set(files_dict_list[label]) - set(train_imgs))
