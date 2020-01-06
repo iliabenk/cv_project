@@ -41,7 +41,7 @@ test_threshold = 0.9
 num_train_per_label = 12
 is_train_surf_on_all_images = True
 is_random_amount_surf_train_per_label = False
-is_get_statistics = True
+is_get_statistics = False
 min_num_imgs_for_label = 5
 surf_data_path = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/all_boxes_with_names"
 surf_train_data = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/train_boxes"
@@ -295,7 +295,7 @@ def get_surf_features(img, hessian_thr=400):
 
 def train_SURF(train_folder_path):
     files_path_list = [os.path.join(train_folder_path, file) for file in os.listdir(train_folder_path) if ".JPG" in file]
-    des_label_list = []
+    des_label_dict = {'blue': [], 'red': [], 'white': [], 'green': [], 'orange': [], 'grey': []}
     amount_labels = {'blue': 0, 'red': 0, 'white': 0, 'green': 0, 'orange': 0, 'grey': 0}
 
     for file_path in files_path_list:
@@ -306,10 +306,15 @@ def train_SURF(train_folder_path):
         label = get_label_from_basename(os.path.basename(file_path))
         amount_labels[label] += 1
 
-        des_label_list.append((label, des, os.path.basename(file_path))) #file name is only for testing, not needed
+        if amount_labels[label] == 1:
+            des_label_dict[label].append(des) #file name is only for testing, not needed
+        elif amount_labels[label] == 2:
+            des_label_dict[label] = np.concatenate((des_label_dict[label][0], des), axis=0) #file name is only for testing, not needed
+        else:
+            des_label_dict[label] = np.concatenate((des_label_dict[label], des), axis=0) #file name is only for testing, not needed
 
     print(amount_labels)
-    return des_label_list
+    return des_label_dict
 
 def test_SURF(test_surf_folder_path, des_label_list, is_get_statistics=False):
     files_path_list = [os.path.join(test_surf_folder_path, file) for file in os.listdir(test_surf_folder_path) if ".JPG" in file]
@@ -334,13 +339,13 @@ def test_SURF(test_surf_folder_path, des_label_list, is_get_statistics=False):
         is_skip_decision_by_score = False
         max_score = 0
 
-        for train_des_label in des_label_list:
-            label_train = train_des_label[0]
-            des_train = train_des_label[1]
-            train_file_name = train_des_label[2]
+        for label_train, des_train in des_label_list.items():
+            # label_train = train_des_label[0]
+            # des_train = value[0]
+            # train_file_name = value[1]
 
-            if train_file_name == os.path.basename(file_path):
-                continue
+            # if train_file_name == os.path.basename(file_path):
+                # continue
 
             amount_train_per_label_d[label_train] += 1 #TODO only for testing, in submission these values are already known
 
@@ -354,7 +359,7 @@ def test_SURF(test_surf_folder_path, des_label_list, is_get_statistics=False):
                 best_score_label = label_train
                 is_skip_decision_by_score = True
                 print(label_train + '  ' + str(amount_good_matching_points))
-                break
+                # break
 
             if amount_good_matching_points > max_score:
                 max_score = amount_good_matching_points
@@ -663,7 +668,7 @@ if __name__ == "__main__":
     with open('/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/KAZE_trained_features.pickle', 'wb') as handle:
         pickle.dump(des_label_list, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    with open('/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/final_dir/KAZE_trained_features.pickle', 'rb') as handle:
+    with open('/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/KAZE_trained_features.pickle', 'rb') as handle:
         des_label_list_from_file = pickle.load(handle)
 
     test_SURF(os.path.join(surf_data_path, 'train'), des_label_list_from_file, is_get_statistics=is_get_statistics)
