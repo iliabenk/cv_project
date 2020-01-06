@@ -75,6 +75,7 @@ def run(estimatedAnnFileName, busDir):
 
 def object_detection_api(img_path, threshold=0.5, rect_th=3, text_size=3, text_th=3, train_des_label=[]):
     img = cv2.imread(img_path, 0)  # Read image with cv2
+
     boxes, pred_cls = get_prediction(img, img_path, threshold, train_des_label)  # Get predictions --- #img_path is only for testing, not needed later
 
     return boxes, pred_cls
@@ -190,11 +191,11 @@ def get_amount_good_matching_points(des1, des2, ratio=0.75, k=2, good_matches_li
 
 
 def get_features(img):
-    surf = cv2.KAZE_create()
+    surf = cv2.AKAZE_create()
 
-    kp, des = surf.detectAndCompute(img, None)
+    _, des = surf.detectAndCompute(img, None)
 
-    return kp, des
+    return _, des
 
 if __name__ == "__main__":
     run('annotationsTrain_test.txt', \

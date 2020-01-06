@@ -284,14 +284,13 @@ def rgb_to_hex(rgb):
 #         img = cv2.cvtColor(cv2.imread(file_path), cv2.COLOR_BGR2RGB)
 
 def get_surf_features(img, hessian_thr=400):
-    surf = cv2.KAZE_create()
+    surf = cv2.AKAZE_create()
 
-    # if img.size > 480000: #800 x 600
     img = cv2.resize(img, (300,225))
 
-    kp, des = surf.detectAndCompute(img, None)
+    _, des = surf.detectAndCompute(img, None)
 
-    return kp, des
+    return _, des
 
 def train_SURF(train_folder_path):
     files_path_list = [os.path.join(train_folder_path, file) for file in os.listdir(train_folder_path) if ".JPG" in file]
@@ -663,7 +662,7 @@ if __name__ == "__main__":
     with open('/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/KAZE_trained_features.pickle', 'wb') as handle:
         pickle.dump(des_label_list, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    with open('/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/final_dir/KAZE_trained_features.pickle', 'rb') as handle:
+    with open('/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/KAZE_trained_features.pickle', 'rb') as handle:
         des_label_list_from_file = pickle.load(handle)
 
     test_SURF(os.path.join(surf_data_path, 'train'), des_label_list_from_file, is_get_statistics=is_get_statistics)
