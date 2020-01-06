@@ -161,7 +161,7 @@ def predict_label(img, des_label_train, file_path):
 
 
 def get_best_label_candidate(score):
-        best_score_label = 'none'
+        best_score_label = 'red'
         best_score = 0
 
         for label, label_score in score.items():
