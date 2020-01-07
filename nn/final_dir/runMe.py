@@ -3,6 +3,8 @@ import os
 import torchvision
 from PIL import Image
 import torchvision.transforms as T
+from torch.utils.data import Dataset
+
 import matplotlib.pyplot as plt
 import cv2
 import torch
@@ -10,6 +12,18 @@ import os
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 import time
 import pickle
+import torch.utils
+
+class my_time:
+
+    def tic(self):
+        self.t = time.time()
+
+    def toc(self):
+        self.elapsed = float(time.time()) - float(self.t)
+        s = "elapsed time is %0.3f seconds" % self.elapsed
+        print(s)
+        return self.elapsed
 
 def create_model():
     INSTANCE_CATEGORY_NAMES = ['background','bus']
@@ -27,14 +41,55 @@ def create_model():
 
     return model
 
+
+class bassesDataset(Dataset):
+    def __init__(self, root, transforms):
+        self.root = root
+        # load all image files, sorting them to
+        # ensure that they are aligned
+        self.imgs = [os.path.join(root, file) for file in os.listdir(os.path.join(root)) if '.JPG' in file]
+        d = {}
+        self.transforms = transforms
+
+    def __getitem__(self, idx):
+        # load images ad masks
+
+        img_path = self.imgs[idx]
+        img = cv2.imread(img_path, 0)  # Read image with cv2
+
+        # img = Image.open(img_path).convert("RGB")
+        img_name = os.path.basename(img_path)
+        # get bounding box coordinates for each mask
+
+
+        if self.transforms is not None:
+            img = self.transforms(img)
+
+        return img
+
+    def __len__(self):
+        return len(self.imgs)
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 model = create_model()
 model.to(device)
 model.load_state_dict(torch.load('nn_busses.pt'))
 model.eval()
+print('Model was loaded')
+
+
 
 
 def run(estimatedAnnFileName, busDir):
+    # transform = T.Compose([T.ToTensor()])
+    # dataset = bassesDataset(busDir, transform)
+    #
+    #
+    # data_loader = torch.utils.data.DataLoader(
+    #     dataset, batch_size=60, shuffle=False, num_workers=1)
+    # for curr_sample in data_loader:
+    #     print('start forward')
+    #     pred = model(curr_sample)
+    # print('finished pred')
     files_path_list = [os.path.join(busDir, file) for file in os.listdir(busDir) if '.JPG' in file]
 
     with open('KAZE_trained_features.pickle', 'rb') as handle:
@@ -43,8 +98,11 @@ def run(estimatedAnnFileName, busDir):
 
 
     with open (estimatedAnnFileName, 'w') as fp_anns:
-        for file_path in files_path_list:
-            boxes, pred_cls = object_detection_api(file_path, threshold=0.9, train_des_label=des_label_list)
+        for indx, file_path in enumerate(files_path_list):
+            t = my_time()
+            t.tic()
+            #boxes, pred_cls = object_detection_api(pred[indx],file_path, threshold=0.9, train_des_label=des_label_list)
+            boxes, pred_cls = object_detection_api([],file_path, threshold=0.9, train_des_label=des_label_list)
 
             strToWrite = os.path.basename(file_path) + ":"
 
@@ -69,13 +127,13 @@ def run(estimatedAnnFileName, busDir):
                     strToWrite += ','
 
             fp_anns.write(strToWrite)
+            t.toc()
+            #print(strToWrite)
 
-            print(strToWrite)
 
-
-def object_detection_api(img_path, threshold=0.5, rect_th=3, text_size=3, text_th=3, train_des_label=[]):
+def object_detection_api(pred, img_path, threshold=0.5, rect_th=3, text_size=3, text_th=3, train_des_label=[]):
     img = cv2.imread(img_path, 0)  # Read image with cv2
-    boxes, pred_cls = get_prediction(img, img_path, threshold, train_des_label)  # Get predictions --- #img_path is only for testing, not needed later
+    boxes, pred_cls = get_prediction(pred, img, img_path, threshold, train_des_label)  # Get predictions --- #img_path is only for testing, not needed later
 
     return boxes, pred_cls
 
@@ -93,13 +151,16 @@ def convert_label_name_to_label_num(label):
     elif 'orange' == label:
         return 2
 
-def get_prediction(img, img_path, threshold, des_label_train=[]): #img_path is only for testing, not needed later
+def get_prediction(pred, img, img_path, threshold, des_label_train=[]): #img_path is only for testing, not needed later
   # img = Image.open(img_path) # Load the image
   transform = T.Compose([T.ToTensor()]) # Defing PyTorch Transform
   img2 = transform(img) # Apply the transform to the image
   pred = model([img2]) # Pass the image to the model
   pred_boxes = [[(i[0], i[1]), (i[2], i[3])] for i in list(pred[0]['boxes'].detach().numpy())] # Bounding boxes
   pred_score = list(pred[0]['scores'].detach().numpy())
+
+  #pred_boxes = [[(i[0], i[1]), (i[2], i[3])] for i in list(pred['boxes'].detach().numpy())] # Bounding boxes
+  #pred_score = list(pred['scores'].detach().numpy())
   pred_t = [pred_score.index(x) for x in pred_score if x > threshold] # Get list of index with score greater than threshold.
 
   pred_class = []
@@ -147,8 +208,8 @@ def predict_label(img, des_label_train, file_path):
         if amount_good_matching_points >= good_matches_limit:
             best_score_label = label_train
             is_skip_decision_by_score = True
-            print(best_score_label)
-            print(amount_good_matching_points)
+            #print(best_score_label)
+            #print(amount_good_matching_points)
             break
 
 
@@ -197,5 +258,14 @@ def get_features(img):
     return kp, des
 
 if __name__ == "__main__":
+    t = my_time()
+
+    t.tic()
+
+
+
     run('annotationsTrain_test.txt', \
-        '/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/all_images')
+        '/Users/omriefroni/PycharmProjects/comp_vision_ex2/cv_project/nn/final_dir/buses')
+
+    elapsed = t.toc()
+    print('elapsed')
