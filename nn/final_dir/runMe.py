@@ -161,7 +161,7 @@ def run_gpu(estimatedAnnFileName, busDir, batch_size = 30, num_workers=1):
             #print(strToWrite)
 
 def run_gpu_faster(estimatedAnnFileName, busDir ,batch_size = 30, num_workers=1):
-    load_model()
+    model = load_model()
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
     transform = T.Compose([T.ToTensor()])
