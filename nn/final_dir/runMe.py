@@ -82,13 +82,13 @@ print('Model was loaded')
 
 
 
-def run_gpu(estimatedAnnFileName, busDir, batch_size = 30):
+def run_gpu(estimatedAnnFileName, busDir, batch_size = 30, num_workers=1):
     transform = T.Compose([T.ToTensor()])
     dataset = bassesDataset(busDir, transform)
 
 
     data_loader = torch.utils.data.DataLoader(
-        dataset, batch_size=batch_size, shuffle=False, num_workers=1)
+        dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
     start = True
     t = my_time()
 
@@ -104,7 +104,6 @@ def run_gpu(estimatedAnnFileName, busDir, batch_size = 30):
             if start:
                 pred = curr_pred
                 start = False
-                break
             else:
                 pred = pred + curr_pred
             print(len(pred))
@@ -120,7 +119,6 @@ def run_gpu(estimatedAnnFileName, busDir, batch_size = 30):
     t.tic()
     with open (estimatedAnnFileName, 'w') as fp_anns:
         for indx, file_path in enumerate(files_path_list):
-            if indx == 30: break
 
             boxes, pred_cls = object_detection_api(pred[indx],file_path, threshold=0.9, train_des_label=des_label_list)
             # boxes, pred_cls = object_detection_api([],file_path, threshold=0.9, train_des_label=des_label_list)
@@ -152,7 +150,7 @@ def run_gpu(estimatedAnnFileName, busDir, batch_size = 30):
     t.toc()
             #print(strToWrite)
 
-def run_gpu_faster(estimatedAnnFileName, busDir):
+def run_gpu_faster(estimatedAnnFileName, busDir ,batch_size = 30, num_workers=1):
     transform = T.Compose([T.ToTensor()])
     dataset = bassesDataset(busDir, transform)
     files_path_list = [os.path.join(busDir, file) for file in os.listdir(busDir) if '.JPG' in file]
@@ -161,7 +159,7 @@ def run_gpu_faster(estimatedAnnFileName, busDir):
     global_indx = 0
     t = my_time()
     data_loader = torch.utils.data.DataLoader(
-        dataset, batch_size=30, shuffle=False, num_workers=1)
+        dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
     start = True
 
     with open (estimatedAnnFileName, 'w') as fp_anns:
@@ -331,7 +329,7 @@ def get_amount_good_matching_points(des1, des2, ratio=0.75, k=2, good_matches_li
 
 
 def get_features(img):
-    print(img.shape)
+    #print(img.shape)
     img = cv2.resize(img, (300,225))
     surf = cv2.AKAZE_create()
 

@@ -329,7 +329,7 @@ def get_amount_good_matching_points(des1, des2, ratio=0.75, k=2, good_matches_li
 
 
 def get_features(img):
-    print(img.shape)
+    #print(img.shape)
     img = cv2.resize(img, (300,225))
     surf = cv2.AKAZE_create()
 
