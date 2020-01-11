@@ -82,7 +82,7 @@ print('Model was loaded')
 
 
 
-def run_gpu(estimatedAnnFileName, busDir, batch_size = 30):
+def create_basic_prediction(estimatedAnnFileName, busDir, batch_size = 30):
     transform = T.Compose([T.ToTensor()])
     dataset = bassesDataset(busDir, transform)
 
@@ -104,7 +104,6 @@ def run_gpu(estimatedAnnFileName, busDir, batch_size = 30):
             if start:
                 pred = curr_pred
                 start = False
-                break
             else:
                 pred = pred + curr_pred
             print(len(pred))
@@ -120,7 +119,6 @@ def run_gpu(estimatedAnnFileName, busDir, batch_size = 30):
     t.tic()
     with open (estimatedAnnFileName, 'w') as fp_anns:
         for indx, file_path in enumerate(files_path_list):
-            if indx == 30: break
 
             boxes, pred_cls = object_detection_api(pred[indx],file_path, threshold=0.9, train_des_label=des_label_list)
             # boxes, pred_cls = object_detection_api([],file_path, threshold=0.9, train_des_label=des_label_list)
@@ -205,7 +203,7 @@ def run_gpu_faster(estimatedAnnFileName, busDir):
               fp_anns.write(strToWrite)
 
 
-def object_detection_api_faster(pred, img, img_path, threshold=0.9, rect_th=3, text_size=3, text_th=3, train_des_label=[]):
+def object_detection_api_pr(pred, img, img_path, threshold=0.9, rect_th=3, text_size=3, text_th=3, train_des_label=[]):
     #img = cv2.imread(img_path, 0)  # Read image with cv2
     boxes, pred_cls = get_prediction(pred, img, img_path, threshold, train_des_label)  # Get predictions --- #img_path is only for testing, not needed later
 
@@ -244,7 +242,7 @@ def get_prediction(pred, img, img_path, threshold, des_label_train=[]): #img_pat
   pred_t = [pred_score.index(x) for x in pred_score if x > threshold] # Get list of index with score greater than threshold.
 
   pred_class = []
-
+  pred_img = []
   if pred_t:
       pred_t = pred_t[-1]
       pred_boxes = pred_boxes[:pred_t+1]
@@ -256,10 +254,10 @@ def get_prediction(pred, img, img_path, threshold, des_label_train=[]): #img_pat
           y_min = int(min_coor[1])
           x_max = int(max_coor[0])
           y_max = int(max_coor[1])
-
-          pred_class.append(predict_label(img[y_min : (y_max + 1), x_min : (x_max + 1)], des_label_train, img_path))
-
-  return pred_boxes, pred_class
+          curr_img = img[y_min : (y_max + 1), x_min : (x_max + 1)]
+          pred_class.append(predict_label(curr_img, des_label_train, img_path))
+          pred_img.append(curr_img)
+  return pred_img, pred_boxes, pred_class
 
 
 def predict_label(img, des_label_train, file_path):
