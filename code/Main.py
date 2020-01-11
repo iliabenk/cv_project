@@ -55,9 +55,9 @@ t = my_time()
 
 t.tic()
 
-run(myAnnFileName, busDir)
+#run(myAnnFileName, busDir)
 
+
+runTest("annotationsTrain.txt", "annotationsTrain_test.txt", 'buses/' , 'result/', 10)
 elapsed = t.toc()
-
-runTest(annFileNameGT, myAnnFileName, busDir , saveDir, elapsed)
 

@@ -13,6 +13,8 @@ from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 import time
 import pickle
 import torch.utils
+from busProjectTest import runTest
+
 
 class my_time:
 
@@ -70,39 +72,56 @@ class bassesDataset(Dataset):
     def __len__(self):
         return len(self.imgs)
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-model = create_model()
-model.to(device)
-model.load_state_dict(torch.load('nn_busses.pt'))
-model.eval()
+with torch.no_grad():
+    model = create_model()
+    model.to(device)
+    model.load_state_dict(torch.load('nn_busses.pt'))
+    model.eval()
 print('Model was loaded')
 
 
 
 
-def run(estimatedAnnFileName, busDir):
-    # transform = T.Compose([T.ToTensor()])
-    # dataset = bassesDataset(busDir, transform)
-    #
-    #
-    # data_loader = torch.utils.data.DataLoader(
-    #     dataset, batch_size=60, shuffle=False, num_workers=1)
-    # for curr_sample in data_loader:
-    #     print('start forward')
-    #     pred = model(curr_sample)
-    # print('finished pred')
+def run_pgu(estimatedAnnFileName, busDir):
+    transform = T.Compose([T.ToTensor()])
+    dataset = bassesDataset(busDir, transform)
+
+
+    data_loader = torch.utils.data.DataLoader(
+        dataset, batch_size=60, shuffle=False, num_workers=1)
+    start = True
+    t = my_time()
+
+    with torch.no_grad():
+        t2 = my_time()
+        t2.tic()
+    for curr_sample in data_loader:
+        print('start forward')
+        t.tic()
+        curr_sample = curr_sample.to(device)
+        curr_pred = model(curr_sample)
+        t.toc()
+        if start:
+            pred = curr_pred
+            start = False
+        else:
+            pred = pred + curr_pred
+        print(len(pred))
+    t2.toc()
+    print('finished pred')
     files_path_list = [os.path.join(busDir, file) for file in os.listdir(busDir) if '.JPG' in file]
 
     with open('KAZE_trained_features.pickle', 'rb') as handle:
         des_label_list = pickle.load(handle)
 
-
+    dict_color = {'red': 6, 'blue': 5, 'white': 3, 'grey': 4, 'orange': 2, 'green': 1}
 
     with open (estimatedAnnFileName, 'w') as fp_anns:
         for indx, file_path in enumerate(files_path_list):
             t = my_time()
             t.tic()
-            #boxes, pred_cls = object_detection_api(pred[indx],file_path, threshold=0.9, train_des_label=des_label_list)
-            boxes, pred_cls = object_detection_api([],file_path, threshold=0.9, train_des_label=des_label_list)
+            boxes, pred_cls = object_detection_api(pred[indx],file_path, threshold=0.9, train_des_label=des_label_list)
+            # boxes, pred_cls = object_detection_api([],file_path, threshold=0.9, train_des_label=des_label_list)
 
             strToWrite = os.path.basename(file_path) + ":"
 
@@ -116,7 +135,8 @@ def run(estimatedAnnFileName, busDir):
                 width = x_max - x_min
                 height = y_max - y_min
 
-                ann = [x_min, y_min, width, height, convert_label_name_to_label_num(pred_cls[i])]
+                # ann = [x_min, y_min, width, height, convert_label_name_to_label_num(pred_cls[i])]
+                ann = [x_min, y_min, width, height, dict_color[pred_cls[i]]]
 
                 posStr = [str(x) for x in ann]
                 posStr = ','.join(posStr)
@@ -130,9 +150,61 @@ def run(estimatedAnnFileName, busDir):
             t.toc()
             #print(strToWrite)
 
+def run_gpu_faster(estimatedAnnFileName, busDir):
+    transform = T.Compose([T.ToTensor()])
+    dataset = bassesDataset(busDir, transform)
+    files_path_list = [os.path.join(busDir, file) for file in os.listdir(busDir) if '.JPG' in file]
+    with open('KAZE_trained_features.pickle', 'rb') as handle:
+        des_label_list = pickle.load(handle)
+    global_indx = 0
+    t = my_time()
+    data_loader = torch.utils.data.DataLoader(
+        dataset, batch_size=30, shuffle=False, num_workers=1)
+    start = True
 
-def object_detection_api(pred, img_path, threshold=0.5, rect_th=3, text_size=3, text_th=3, train_des_label=[]):
-    img = cv2.imread(img_path, 0)  # Read image with cv2
+    with open (estimatedAnnFileName, 'w') as fp_anns:
+
+      with torch.no_grad():
+        # t2 = my_time()
+        # t2.tic()
+        for curr_sample in data_loader:
+            print('start forward')
+            t.tic()
+            curr_sample = curr_sample.to(device)
+            curr_pred = model(curr_sample)
+            #return curr_sample
+            t.toc()
+            for i in range(len(curr_sample)):
+              file_path = files_path_list[global_indx]
+              global_indx +=1
+              boxes, pred_cls = object_detection_api(curr_pred[i], curr_sample[i].cpu().numpy()[0,:,:] ,file_path, threshold=0.9, train_des_label=des_label_list)
+              strToWrite = os.path.basename(file_path) + ":"
+
+              for i in range(len(boxes)):
+                  min_coor = boxes[i][0]
+                  max_coor = boxes[i][1]
+                  x_min = int(min_coor[0])
+                  y_min = int(min_coor[1])
+                  x_max = int(max_coor[0])
+                  y_max = int(max_coor[1])
+                  width = x_max - x_min
+                  height = y_max - y_min
+                  dict_color = {'red':6, 'blue':5 ,'white':3, 'grey':4, 'orange':2, 'green':1}
+                  ann = [x_min, y_min, width, height, dict_color[pred_cls[i]]]
+
+                  posStr = [str(x) for x in ann]
+                  posStr = ','.join(posStr)
+                  strToWrite += '[' + posStr + ']'
+                  if (i == int(len(boxes)) - 1):
+                      strToWrite += '\n'
+                  else:
+                      strToWrite += ','
+
+              fp_anns.write(strToWrite)
+
+
+def object_detection_api(pred, img, img_path, threshold=0.9, rect_th=3, text_size=3, text_th=3, train_des_label=[]):
+    #img = cv2.imread(img_path, 0)  # Read image with cv2
     boxes, pred_cls = get_prediction(pred, img, img_path, threshold, train_des_label)  # Get predictions --- #img_path is only for testing, not needed later
 
     return boxes, pred_cls
@@ -153,14 +225,14 @@ def convert_label_name_to_label_num(label):
 
 def get_prediction(pred, img, img_path, threshold, des_label_train=[]): #img_path is only for testing, not needed later
   # img = Image.open(img_path) # Load the image
-  transform = T.Compose([T.ToTensor()]) # Defing PyTorch Transform
-  img2 = transform(img) # Apply the transform to the image
-  pred = model([img2]) # Pass the image to the model
-  pred_boxes = [[(i[0], i[1]), (i[2], i[3])] for i in list(pred[0]['boxes'].detach().numpy())] # Bounding boxes
-  pred_score = list(pred[0]['scores'].detach().numpy())
+  # transform = T.Compose([T.ToTensor()]) # Defing PyTorch Transform
+  # img2 = transform(img) # Apply the transform to the image
+  # pred = model([img2]) # Pass the image to the model
+  # pred_boxes = [[(i[0], i[1]), (i[2], i[3])] for i in list(pred[0]['boxes'].detach().numpy())] # Bounding boxes
+  # pred_score = list(pred[0]['scores'].detach().numpy())
 
-  #pred_boxes = [[(i[0], i[1]), (i[2], i[3])] for i in list(pred['boxes'].detach().numpy())] # Bounding boxes
-  #pred_score = list(pred['scores'].detach().numpy())
+  pred_boxes = [[(i[0], i[1]), (i[2], i[3])] for i in list(pred['boxes'].detach().cpu().numpy())] # Bounding boxes
+  pred_score = list(pred['scores'].detach().cpu().numpy())
   pred_t = [pred_score.index(x) for x in pred_score if x > threshold] # Get list of index with score greater than threshold.
 
   pred_class = []
@@ -222,7 +294,7 @@ def predict_label(img, des_label_train, file_path):
 
 
 def get_best_label_candidate(score):
-        best_score_label = 'none'
+        best_score_label = 'red'
         best_score = 0
 
         for label, label_score in score.items():
@@ -251,11 +323,11 @@ def get_amount_good_matching_points(des1, des2, ratio=0.75, k=2, good_matches_li
 
 
 def get_features(img):
-    surf = cv2.KAZE_create()
+    surf = cv2.AKAZE_create()
 
-    kp, des = surf.detectAndCompute(img, None)
+    _, des = surf.detectAndCompute(img, None)
 
-    return kp, des
+    return _, des
 
 if __name__ == "__main__":
     t = my_time()
@@ -264,8 +336,9 @@ if __name__ == "__main__":
 
 
 
-    run('annotationsTrain_test.txt', \
-        '/Users/omriefroni/PycharmProjects/comp_vision_ex2/cv_project/nn/final_dir/buses')
+    # run('annotationsTrain_test.txt', \
+    #     '/Users/omriefroni/PycharmProjects/comp_vision_ex2/cv_project/nn/final_dir/buses')
+    runTest("annotationsTrain.txt", "annotationsTrain_test.txt", 'buses/', 'result/', 10)
 
     elapsed = t.toc()
     print('elapsed')

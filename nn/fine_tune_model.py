@@ -21,6 +21,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import shutil
 import operator
 import time
+import pickle
 
 ########### start configs
 data_path = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/all_images"
@@ -37,12 +38,12 @@ num_epochs = 1
 
 test_threshold = 0.9
 
-num_train_per_label = 5
+num_train_per_label = 12
 is_train_surf_on_all_images = True
 is_random_amount_surf_train_per_label = False
 is_get_statistics = True
 min_num_imgs_for_label = 5
-surf_data_path = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/all_boxes"
+surf_data_path = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/all_boxes_with_names"
 surf_train_data = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/train_boxes"
 surf_test_data = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/test_boxes"
 
@@ -283,11 +284,13 @@ def rgb_to_hex(rgb):
 #         img = cv2.cvtColor(cv2.imread(file_path), cv2.COLOR_BGR2RGB)
 
 def get_surf_features(img, hessian_thr=400):
-    surf = cv2.KAZE_create()
+    surf = cv2.AKAZE_create()
 
-    kp, des = surf.detectAndCompute(img, None)
+    img = cv2.resize(img, (300,225))
 
-    return kp, des
+    _, des = surf.detectAndCompute(img, None)
+
+    return _, des
 
 def train_SURF(train_folder_path):
     files_path_list = [os.path.join(train_folder_path, file) for file in os.listdir(train_folder_path) if ".JPG" in file]
@@ -302,7 +305,7 @@ def train_SURF(train_folder_path):
         label = get_label_from_basename(os.path.basename(file_path))
         amount_labels[label] += 1
 
-        des_label_list.append((label, des))
+        des_label_list.append((label, des, os.path.basename(file_path))) #file name is only for testing, not needed
 
     print(amount_labels)
     return des_label_list
@@ -327,32 +330,56 @@ def test_SURF(test_surf_folder_path, des_label_list, is_get_statistics=False):
 
         score_d = {'blue': 0, 'red': 0, 'white': 0, 'green': 0, 'orange': 0, 'grey': 0}
         amount_train_per_label_d = {'blue': 0, 'red': 0, 'white': 0, 'green': 0, 'orange': 0, 'grey': 0}
+        is_skip_decision_by_score = False
+        max_score = 0
 
         for train_des_label in des_label_list:
             label_train = train_des_label[0]
             des_train = train_des_label[1]
+            train_file_name = train_des_label[2]
+
+            if train_file_name == os.path.basename(file_path):
+                continue
+
             amount_train_per_label_d[label_train] += 1 #TODO only for testing, in submission these values are already known
 
-            score_d[label_train] += get_amount_good_matching_points(des_test, des_train, ratio=ratio, k=2)
+            amount_good_matching_points = get_amount_good_matching_points(des_test, des_train, ratio=ratio, k=2)
 
-        score_d = {label:(value / amount_train_per_label_d[label]) for (label, value) in score_d.items()}
+            # print(label_train + '    ' + str(amount_good_matching_points))
 
-        prob_d = convert_score_to_probability(score_d)
+            score_d[label_train] += amount_good_matching_points
 
-        best_score_label = get_best_label_candidate(prob_d)
+            if amount_good_matching_points >= 80:
+                best_score_label = label_train
+                is_skip_decision_by_score = True
+                print(label_train + '  ' + str(amount_good_matching_points))
+                break
+
+            if amount_good_matching_points > max_score:
+                max_score = amount_good_matching_points
+
+        if is_skip_decision_by_score is False:
+            score_d = {label:(value / amount_train_per_label_d[label]) for (label, value) in score_d.items()}
+
+            prob_d = convert_score_to_probability(score_d)
+
+            best_score_label = get_best_label_candidate(prob_d)
 
         is_correct_pred = (best_score_label in os.path.basename(file_path))
+
+        print(score_d)
 
         if is_correct_pred:
             num_correct_pred += 1
 
-        print(prob_d)
+        # print(prob_d)
         print(os.path.basename(file_path) + ':  ' + best_score_label + '    Is correct prediction:  ' + str(is_correct_pred))
-        print()
+        # print()
 
         if is_get_statistics:
             if is_correct_pred:
-                correct_preds_prob.append(prob_d[best_score_label])
+                if is_skip_decision_by_score is False:
+                    correct_preds_prob.append(prob_d[best_score_label])
             else:
                 wrong_preds_prob.append(prob_d[best_score_label])
                 wrong_pred_images.append(os.path.basename(file_path))
@@ -623,34 +650,42 @@ def main():
 
 
 if __name__ == "__main__":
-    ##### create train & test automatically from all images #########
+    #### create train & test automatically from all images #########
 
-    # create_train_test_folders_surf(surf_data_path, num_train_per_label, min_num_imgs_for_label, is_train_surf_on_all_images=is_train_surf_on_all_images,\
-    #                                is_random_amount_surf_train_per_label=is_random_amount_surf_train_per_label)
+    create_train_test_folders_surf(surf_data_path, num_train_per_label, min_num_imgs_for_label, is_train_surf_on_all_images=is_train_surf_on_all_images,\
+                                   is_random_amount_surf_train_per_label=is_random_amount_surf_train_per_label)
 
-    # des_label_list = train_SURF(os.path.join(surf_data_path, 'train'))
-    #
-    # t = time.time()
-    #
-    # test_SURF(os.path.join(surf_data_path, 'test'), des_label_list, is_get_statistics=is_get_statistics)
-    # # test_SURF(os.path.join(surf_data_path), des_label_list, is_get_statistics=True)
-    #
-    # print(str(time.time() - t) + ' secs for test_SURF')
+    des_label_list = train_SURF(os.path.join(surf_data_path, 'train'))
+
+    t = time.time()
+
+    with open('/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/KAZE_trained_features.pickle', 'wb') as handle:
+        pickle.dump(des_label_list, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    with open('/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/KAZE_trained_features.pickle', 'rb') as handle:
+        des_label_list_from_file = pickle.load(handle)
+
+    test_SURF(os.path.join(surf_data_path, 'train'), des_label_list_from_file, is_get_statistics=is_get_statistics)
+    # test_SURF(os.path.join(surf_data_path), des_label_list_from_file, is_get_statistics=True)
+
+    # save / load data testing
+
+    print(str(time.time() - t) + ' secs for test_SURF')
 
 
     ########## Run on pre-made train & test surf images ############
 
-    create_train_test_folders_surf(surf_train_data, num_train_per_label, min_num_imgs_for_label, is_train_surf_on_all_images=is_train_surf_on_all_images,\
-                                   is_random_amount_surf_train_per_label=is_random_amount_surf_train_per_label)
-
-    des_label_list = train_SURF(os.path.join(surf_train_data, 'train'))
-
-    t = time.time()
-
-    test_SURF(surf_test_data, des_label_list, is_get_statistics=is_get_statistics)
-    # test_SURF(os.path.join(surf_data_path), des_label_list, is_get_statistics=True)
-
-    print(str(time.time() - t) + ' secs for test_SURF')
+    # create_train_test_folders_surf(surf_train_data, num_train_per_label, min_num_imgs_for_label, is_train_surf_on_all_images=is_train_surf_on_all_images,\
+    #                                is_random_amount_surf_train_per_label=is_random_amount_surf_train_per_label)
+    #
+    # des_label_list = train_SURF(os.path.join(surf_train_data, 'train'))
+    #
+    # t = time.time()
+    #
+    # test_SURF(surf_test_data, des_label_list, is_get_statistics=is_get_statistics)
+    # # test_SURF(os.path.join(surf_data_path), des_label_list, is_get_statistics=True)
+    #
+    # print(str(time.time() - t) + ' secs for test_SURF')
 
     # main()
 
