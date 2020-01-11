@@ -177,7 +177,7 @@ def run_gpu_faster(estimatedAnnFileName, busDir):
             for i in range(len(curr_sample)):
               file_path = files_path_list[global_indx]
               global_indx +=1
-              boxes, pred_cls = object_detection_api(curr_pred[i], curr_sample[i].cpu().numpy()[0,:,:] ,file_path, threshold=0.9, train_des_label=des_label_list)
+              boxes, pred_cls = object_detection_api_faster(curr_pred[i], curr_sample[i].cpu().numpy()[0,:,:] ,file_path, threshold=0.9, train_des_label=des_label_list)
               strToWrite = os.path.basename(file_path) + ":"
 
               for i in range(len(boxes)):
@@ -203,8 +203,14 @@ def run_gpu_faster(estimatedAnnFileName, busDir):
               fp_anns.write(strToWrite)
 
 
-def object_detection_api(pred, img, img_path, threshold=0.9, rect_th=3, text_size=3, text_th=3, train_des_label=[]):
+def object_detection_api_faster(pred, img, img_path, threshold=0.9, rect_th=3, text_size=3, text_th=3, train_des_label=[]):
     #img = cv2.imread(img_path, 0)  # Read image with cv2
+    boxes, pred_cls = get_prediction(pred, img, img_path, threshold, train_des_label)  # Get predictions --- #img_path is only for testing, not needed later
+
+    return boxes, pred_cls
+
+def object_detection_api(pred, img_path, threshold=0.9, rect_th=3, text_size=3, text_th=3, train_des_label=[]):
+    img = cv2.imread(img_path, 0)  # Read image with cv2
     boxes, pred_cls = get_prediction(pred, img, img_path, threshold, train_des_label)  # Get predictions --- #img_path is only for testing, not needed later
 
     return boxes, pred_cls
