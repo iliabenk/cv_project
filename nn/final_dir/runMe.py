@@ -95,18 +95,18 @@ def run_pgu(estimatedAnnFileName, busDir):
     with torch.no_grad():
         t2 = my_time()
         t2.tic()
-    for curr_sample in data_loader:
-        print('start forward')
-        t.tic()
-        curr_sample = curr_sample.to(device)
-        curr_pred = model(curr_sample)
-        t.toc()
-        if start:
-            pred = curr_pred
-            start = False
-        else:
-            pred = pred + curr_pred
-        print(len(pred))
+        for curr_sample in data_loader:
+            print('start forward')
+            t.tic()
+            curr_sample = curr_sample.to(device)
+            curr_pred = model(curr_sample)
+            t.toc()
+            if start:
+                pred = curr_pred
+                start = False
+            else:
+                pred = pred + curr_pred
+            print(len(pred))
     t2.toc()
     print('finished pred')
     files_path_list = [os.path.join(busDir, file) for file in os.listdir(busDir) if '.JPG' in file]
