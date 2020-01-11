@@ -646,7 +646,7 @@ def main(model_file_name = 'nn_buses_3.pt', data_path='final_dir/buses'):
         # evaluate on the test dataset
         # evaluate(model, data_loader_test, device=device) # old funcrion from the tutorial - i didnt use
         # Run the model on the test images and save predicted image.
-        if (epoch+1)%10 ==0:
+        if (epoch+1)%20 ==0:
             test(model, epoch, test_path)
     print("That's it!")
 
