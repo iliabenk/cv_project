@@ -34,7 +34,7 @@ train_perc = 0.8
 # Defines the labels for the model, change to colors if you want.
 COCO_INSTANCE_CATEGORY_NAMES = ['background','bus']
 # COCO_INSTANCE_CATEGORY_NAMES = ['background', 'green', 'yellow', 'white', 'grey', 'blue', 'red']
-num_epochs = 10
+num_epochs = 40
 
 test_threshold = 0.9
 
@@ -646,7 +646,7 @@ def main(model_file_name = 'nn_buses_3.pt', data_path='final_dir/buses'):
         # evaluate on the test dataset
         # evaluate(model, data_loader_test, device=device) # old funcrion from the tutorial - i didnt use
         # Run the model on the test images and save predicted image.
-        if epoch%3 ==0 or epoch == num_epochs-1:
+        if (epoch+1)%10 ==0:
             test(model, epoch, test_path)
     print("That's it!")
 
