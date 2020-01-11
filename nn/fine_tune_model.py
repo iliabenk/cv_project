@@ -53,11 +53,11 @@ surf_test_data = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_
 def get_prediction(model, img_path, threshold):
   device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
   img = cv2.imread(img_path) # Load the image
-  img = img.to(device)
+
 
   transform = T.Compose([T.ToTensor()]) # Defing PyTorch Transform
   img = transform(img) # Apply the transform to the image
-
+  img = img.to(device)
   pred = model([img]) # Pass the image to the model
 
   pred_class = [COCO_INSTANCE_CATEGORY_NAMES[i] for i in list(pred[0]['labels'].cpu().numpy())] # Get the Prediction Score
@@ -646,9 +646,8 @@ def main(model_file_name = 'nn_buses_3.pt', data_path='final_dir/buses'):
         # evaluate on the test dataset
         # evaluate(model, data_loader_test, device=device) # old funcrion from the tutorial - i didnt use
         # Run the model on the test images and save predicted image.
-        # if epoch%3 ==0 or epoch == num_epochs-1:
-        #     test(model, epoch, test_path)
-        return model
+        if epoch%3 ==0 or epoch == num_epochs-1:
+            test(model, epoch, test_path)
     print("That's it!")
 
     # save the model for reloading after
