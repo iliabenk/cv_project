@@ -34,7 +34,7 @@ train_perc = 0.8
 # Defines the labels for the model, change to colors if you want.
 COCO_INSTANCE_CATEGORY_NAMES = ['background','bus']
 # COCO_INSTANCE_CATEGORY_NAMES = ['background', 'green', 'yellow', 'white', 'grey', 'blue', 'red']
-num_epochs = 40
+num_epochs = 20
 
 test_threshold = 0.9
 
@@ -597,7 +597,7 @@ def get_train_test_imgs(images_list, train_perc):
 
     return train_imgs, test_imgs
 
-def main(model_file_name = 'nn_buses_3.pt', data_path='final_dir/buses'):
+def main(model_file_name = 'nn_buses_3.pt', data_path='final_dir/buses', batch_size=1):
     # train on the GPU or on the CPU, if a GPU is not available
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
@@ -615,7 +615,7 @@ def main(model_file_name = 'nn_buses_3.pt', data_path='final_dir/buses'):
 
     # define training and validation data loaders
     data_loader_train = torch.utils.data.DataLoader(
-        dataset, batch_size=1, shuffle=True, num_workers=1,
+        dataset, batch_size=batch_size, shuffle=True, num_workers=1,
         collate_fn=utils.collate_fn)
     # currently not in use
     #FIXME can change for use at testing (the train punction recives the image path instead of the current output of the loader which is loaded image)
@@ -646,7 +646,7 @@ def main(model_file_name = 'nn_buses_3.pt', data_path='final_dir/buses'):
         # evaluate on the test dataset
         # evaluate(model, data_loader_test, device=device) # old funcrion from the tutorial - i didnt use
         # Run the model on the test images and save predicted image.
-        if (epoch+1)%20 ==0:
+        if (epoch)%10 ==0 or epoch == num_epochs-1:
             test(model, epoch, test_path)
     print("That's it!")
 
