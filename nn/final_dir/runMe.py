@@ -71,6 +71,7 @@ class bassesDataset(Dataset):
 
     def __len__(self):
         return len(self.imgs)
+
 def load_model():
     t = my_time()
     t.tic()
@@ -91,6 +92,8 @@ def load_model():
 
 def run_gpu(estimatedAnnFileName, busDir, batch_size = 30, num_workers=1):
     model = load_model()
+    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+
     transform = T.Compose([T.ToTensor()])
     dataset = bassesDataset(busDir, transform)
 
@@ -159,6 +162,8 @@ def run_gpu(estimatedAnnFileName, busDir, batch_size = 30, num_workers=1):
 
 def run_gpu_faster(estimatedAnnFileName, busDir ,batch_size = 30, num_workers=1):
     load_model()
+    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+
     transform = T.Compose([T.ToTensor()])
     dataset = bassesDataset(busDir, transform)
     files_path_list = [os.path.join(busDir, file) for file in os.listdir(busDir) if '.JPG' in file]
