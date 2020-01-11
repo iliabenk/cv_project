@@ -53,9 +53,10 @@ surf_test_data = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_
 def get_prediction(model, img_path, threshold):
   device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
   img = Image.open(img_path) # Load the image
+  img = img.to(device)
   transform = T.Compose([T.ToTensor()]) # Defing PyTorch Transform
   img = transform(img) # Apply the transform to the image
-  img = img.to(device)
+
   pred = model([img]) # Pass the image to the model
 
   pred_class = [COCO_INSTANCE_CATEGORY_NAMES[i] for i in list(pred[0]['labels'].cpu().numpy())] # Get the Prediction Score
