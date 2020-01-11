@@ -71,23 +71,26 @@ class bassesDataset(Dataset):
 
     def __len__(self):
         return len(self.imgs)
-t = my_time()
-t.tic()
-device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-print('run_1')
+def load_model():
+    t = my_time()
+    t.tic()
+    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    print('run_1')
 
-with torch.no_grad():
-    model = create_model()
-    model.to(device)
-    model.load_state_dict(torch.load('nn_busses.pt'))
-    model.eval()
-t.toc()
-print('Model was loaded')
+    with torch.no_grad():
+        model = create_model()
+        model.to(device)
+        model.load_state_dict(torch.load('nn_busses.pt'))
+        model.eval()
+    t.toc()
+    print('Model was loaded')
+    return model
 
 
 
 
 def run_gpu(estimatedAnnFileName, busDir, batch_size = 30, num_workers=1):
+    model = load_model()
     transform = T.Compose([T.ToTensor()])
     dataset = bassesDataset(busDir, transform)
 
@@ -155,6 +158,7 @@ def run_gpu(estimatedAnnFileName, busDir, batch_size = 30, num_workers=1):
             #print(strToWrite)
 
 def run_gpu_faster(estimatedAnnFileName, busDir ,batch_size = 30, num_workers=1):
+    load_model()
     transform = T.Compose([T.ToTensor()])
     dataset = bassesDataset(busDir, transform)
     files_path_list = [os.path.join(busDir, file) for file in os.listdir(busDir) if '.JPG' in file]
