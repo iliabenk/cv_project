@@ -592,8 +592,11 @@ def get_train_test_imgs(images_list, train_perc):
 
     train_imgs_indices = np.random.choice(num_imgs, round(train_perc * num_imgs), replace=False)
 
-    train_imgs = [images_list[i] for i in train_imgs_indices]
+    train_imgs = [images_list[i] for i in train_imgs_indices if '1013' not in images_list[i]]
+
     test_imgs = list(set(images_list) - set(train_imgs))
+    print(test_imgs)
+    print(len(train_imgs))
 
     return train_imgs, test_imgs
 
