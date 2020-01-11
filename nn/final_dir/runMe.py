@@ -82,13 +82,13 @@ print('Model was loaded')
 
 
 
-def run_gpu(estimatedAnnFileName, busDir):
+def run_gpu(estimatedAnnFileName, busDir, batch_size = 30):
     transform = T.Compose([T.ToTensor()])
     dataset = bassesDataset(busDir, transform)
 
 
     data_loader = torch.utils.data.DataLoader(
-        dataset, batch_size=60, shuffle=False, num_workers=1)
+        dataset, batch_size=batch_size, shuffle=False, num_workers=1)
     start = True
     t = my_time()
 
