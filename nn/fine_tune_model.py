@@ -78,18 +78,18 @@ def get_prediction(model, img_path, threshold):
 def object_detection_api(model, output_dir,img_path, threshold=0.5, rect_th=3, text_size=3, text_th=3):
     boxes, pred_cls = get_prediction(model, img_path, threshold)  # Get predictions
     img = cv2.imread(img_path)  # Read image with cv2
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # Convert to RGB
+    #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # Convert to RGB
     for i in range(len(boxes)):
         cv2.rectangle(img, boxes[i][0], boxes[i][1], color=(0, 255, 0),
                       thickness=rect_th)  # Draw Rectangle with the coordinates
         cv2.putText(img, pred_cls[i], boxes[i][0], cv2.FONT_HERSHEY_SIMPLEX, text_size, (0, 255, 0),
                     thickness=text_th)  # Write the prediction class
-    plt.figure(figsize=(20, 30))  # display the output image
-    plt.imshow(img)
+    #plt.figure(figsize=(20, 30))  # display the output image
+    #plt.imshow(img)
     plt.xticks([])
     plt.yticks([])
     #plt.show()
-    plt.savefig(os.path.join(output_dir, os.path.basename(img_path).replace('.JPG','_prid.JPG')))
+    cv2.imwrite(os.path.join(output_dir, os.path.basename(img_path).replace('.JPG','_prid.JPG')),img)
 
 # Test function - FIXME need to add aoc score as defined, Changes at DataLoarder has to be done
 def test(model, epoch, output_path ):
