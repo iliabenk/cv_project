@@ -5,7 +5,7 @@ from PIL import Image
 import torchvision.transforms as T
 from torch.utils.data import Dataset
 
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import cv2
 import torch
 import os
@@ -82,7 +82,7 @@ print('Model was loaded')
 
 
 
-def run_pgu(estimatedAnnFileName, busDir):
+def run_gpu(estimatedAnnFileName, busDir):
     transform = T.Compose([T.ToTensor()])
     dataset = bassesDataset(busDir, transform)
 
