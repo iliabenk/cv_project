@@ -16,7 +16,7 @@ import torchvision.transforms as T
 import copy
 import cv2
 import matplotlib.pyplot as plt
-from sklearn.cluster import KMeans
+#from sklearn.cluster import KMeans
 from mpl_toolkits.mplot3d import Axes3D
 import shutil
 import operator
@@ -24,17 +24,17 @@ import time
 import pickle
 
 ########### start configs
-data_path = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/all_images"
+data_path = "buses"
 train_perc = 0.8
-model_file_name = "nn_busses_2.pt"
+#model_file_name = "nn_busses_3.pt"
 
-train_color_folder_path = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/boxes"
-test_color_folder_path = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/boxes_test"
+#train_color_folder_path = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/boxes"
+#test_color_folder_path = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/boxes_test"
 
 # Defines the labels for the model, change to colors if you want.
 COCO_INSTANCE_CATEGORY_NAMES = ['background','bus']
 # COCO_INSTANCE_CATEGORY_NAMES = ['background', 'green', 'yellow', 'white', 'grey', 'blue', 'red']
-num_epochs = 1
+num_epochs = 10
 
 test_threshold = 0.9
 
@@ -88,7 +88,7 @@ def object_detection_api(model, output_dir,img_path, threshold=0.5, rect_th=3, t
     plt.savefig(os.path.join(output_dir, os.path.basename(img_path).replace('.JPG','_prid.JPG')))
 
 # Test function - FIXME need to add aoc score as defined, Changes at DataLoarder has to be done
-def test(model,  data_loader, epoch, output_path ):
+def test(model, epoch, output_path ):
     file_list = [os.path.join(output_path, file) for file in os.listdir(output_path) if '.JPG' in file]
     model.eval()
     output_fol = os.path.join(output_path, 'ep' + str(epoch))
@@ -593,7 +593,7 @@ def get_train_test_imgs(images_list, train_perc):
 
     return train_imgs, test_imgs
 
-def main():
+def main(model_file_name = 'nn_buses_3.pt'):
     # train on the GPU or on the CPU, if a GPU is not available
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
@@ -642,7 +642,8 @@ def main():
         # evaluate on the test dataset
         # evaluate(model, data_loader_test, device=device) # old funcrion from the tutorial - i didnt use
         # Run the model on the test images and save predicted image.
-        test(model, data_loader_test, epoch, test_path)
+        if epoch%3 ==0 or epoch == num_epochs-1:
+            test(model, epoch, test_path)
     print("That's it!")
 
     # save the model for reloading after
@@ -652,25 +653,25 @@ def main():
 if __name__ == "__main__":
     #### create train & test automatically from all images #########
 
-    create_train_test_folders_surf(surf_data_path, num_train_per_label, min_num_imgs_for_label, is_train_surf_on_all_images=is_train_surf_on_all_images,\
-                                   is_random_amount_surf_train_per_label=is_random_amount_surf_train_per_label)
-
-    des_label_list = train_SURF(os.path.join(surf_data_path, 'train'))
-
-    t = time.time()
-
-    with open('/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/KAZE_trained_features.pickle', 'wb') as handle:
-        pickle.dump(des_label_list, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-    with open('/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/KAZE_trained_features.pickle', 'rb') as handle:
-        des_label_list_from_file = pickle.load(handle)
-
-    test_SURF(os.path.join(surf_data_path, 'train'), des_label_list_from_file, is_get_statistics=is_get_statistics)
-    # test_SURF(os.path.join(surf_data_path), des_label_list_from_file, is_get_statistics=True)
-
-    # save / load data testing
-
-    print(str(time.time() - t) + ' secs for test_SURF')
+    # create_train_test_folders_surf(surf_data_path, num_train_per_label, min_num_imgs_for_label, is_train_surf_on_all_images=is_train_surf_on_all_images,\
+    #                                is_random_amount_surf_train_per_label=is_random_amount_surf_train_per_label)
+    #
+    # des_label_list = train_SURF(os.path.join(surf_data_path, 'train'))
+    #
+    # t = time.time()
+    #
+    # with open('/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/KAZE_trained_features.pickle', 'wb') as handle:
+    #     pickle.dump(des_label_list, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    #
+    # with open('/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/KAZE_trained_features.pickle', 'rb') as handle:
+    #     des_label_list_from_file = pickle.load(handle)
+    #
+    # test_SURF(os.path.join(surf_data_path, 'train'), des_label_list_from_file, is_get_statistics=is_get_statistics)
+    # # test_SURF(os.path.join(surf_data_path), des_label_list_from_file, is_get_statistics=True)
+    #
+    # # save / load data testing
+    #
+    # print(str(time.time() - t) + ' secs for test_SURF')
 
 
     ########## Run on pre-made train & test surf images ############
@@ -687,5 +688,6 @@ if __name__ == "__main__":
     #
     # print(str(time.time() - t) + ' secs for test_SURF')
 
-    # main()
+    main()
+
 

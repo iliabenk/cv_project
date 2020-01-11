@@ -10,7 +10,7 @@ import imageio
 
 
 fontdict = {'fontsize':15, 'weight':'bold'}
-#plt.switch_backend('Qt5Agg')
+# plt.switch_backend('Qt5Agg')
 
 class IMAGE:
 
@@ -176,7 +176,7 @@ def runTest(annFileNameGT, myAnnFileName, busDir , saveDir = None, elapsed = Non
     ax.imshow(im)
     ax.text(4,7, strToWrite, style='italic', fontdict = {'fontsize':50, 'weight':'bold'})
     mng = plt.get_current_fig_manager()
-    mng.window.showMaximized()
+    #mng.window.showMaximized()
     plt.show()
     plt.close()
     FIG, ax = plt.subplots(1)
