@@ -34,7 +34,7 @@ train_perc = 0.8
 # Defines the labels for the model, change to colors if you want.
 COCO_INSTANCE_CATEGORY_NAMES = ['background','bus']
 # COCO_INSTANCE_CATEGORY_NAMES = ['background', 'green', 'yellow', 'white', 'grey', 'blue', 'red']
-num_epochs = 20
+num_epochs = 30
 
 test_threshold = 0.9
 
