@@ -32,7 +32,7 @@ def create_model():
 
     # load a model pre-trained pre-trained on COCO
     model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False,pretrained_backbone=False)
-
+    print("new_v")
     # replace the classifier with a new one, that has
     # num_classes which is user-defined
     num_classes = len(INSTANCE_CATEGORY_NAMES)  # 1 class (person) + background
@@ -71,12 +71,15 @@ class bassesDataset(Dataset):
 
     def __len__(self):
         return len(self.imgs)
+t = my_time()
+t.tic()
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 with torch.no_grad():
     model = create_model()
     model.to(device)
     model.load_state_dict(torch.load('nn_busses.pt'))
     model.eval()
+t.toc()
 print('Model was loaded')
 
 
