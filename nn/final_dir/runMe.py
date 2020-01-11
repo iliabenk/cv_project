@@ -119,7 +119,6 @@ def run_gpu(estimatedAnnFileName, busDir, batch_size = 30, num_workers=1):
     t.tic()
     with open (estimatedAnnFileName, 'w') as fp_anns:
         for indx, file_path in enumerate(files_path_list):
-
             boxes, pred_cls = object_detection_api(pred[indx],file_path, threshold=0.9, train_des_label=des_label_list)
             # boxes, pred_cls = object_detection_api([],file_path, threshold=0.9, train_des_label=des_label_list)
 
@@ -331,7 +330,7 @@ def get_amount_good_matching_points(des1, des2, ratio=0.75, k=2, good_matches_li
 def get_features(img):
     #print(img.shape)
     img = cv2.resize(img, (300,225))
-    surf = cv2.AKAZE_create()
+    surf = cv2.AKAZE_create(descriptor_type=3)
 
     _, des = surf.detectAndCompute(img, None)
 
@@ -345,7 +344,7 @@ if __name__ == "__main__":
 
 
     run_gpu('annotationsTrain_test.txt', \
-         '/Users/omriefroni/PycharmProjects/comp_vision_ex2/cv_project/nn/final_dir/buses')
+         '/Users/omriefroni/PycharmProjects/comp_vision_ex2/cv_project/nn/final_dir/buses', num_workers=4)
     # runTest("annotationsTrain.txt", "annotationsTrain_test.txt", 'buses/', 'result/', 10)
 
     elapsed = t.toc()
