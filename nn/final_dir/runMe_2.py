@@ -71,16 +71,17 @@ class bassesDataset(Dataset):
 
     def __len__(self):
         return len(self.imgs)
+t = my_time()
+t.tic()
+print('run_2')
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 with torch.no_grad():
     model = create_model()
     model.to(device)
     model.load_state_dict(torch.load('nn_busses.pt'))
     model.eval()
+t.toc()
 print('Model was loaded')
-
-
-
 
 def create_basic_prediction(estimatedAnnFileName, busDir, batch_size = 30):
     transform = T.Compose([T.ToTensor()])

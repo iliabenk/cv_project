@@ -74,6 +74,8 @@ class bassesDataset(Dataset):
 t = my_time()
 t.tic()
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+print('run_1')
+
 with torch.no_grad():
     model = create_model()
     model.to(device)
