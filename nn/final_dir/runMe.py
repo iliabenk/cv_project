@@ -115,11 +115,11 @@ def run_gpu(estimatedAnnFileName, busDir, batch_size = 30):
         des_label_list = pickle.load(handle)
 
     dict_color = {'red': 6, 'blue': 5, 'white': 3, 'grey': 4, 'orange': 2, 'green': 1}
-
+    t = my_time()
+    t.tic()
     with open (estimatedAnnFileName, 'w') as fp_anns:
         for indx, file_path in enumerate(files_path_list):
-            t = my_time()
-            t.tic()
+
             boxes, pred_cls = object_detection_api(pred[indx],file_path, threshold=0.9, train_des_label=des_label_list)
             # boxes, pred_cls = object_detection_api([],file_path, threshold=0.9, train_des_label=des_label_list)
 
@@ -147,7 +147,7 @@ def run_gpu(estimatedAnnFileName, busDir, batch_size = 30):
                     strToWrite += ','
 
             fp_anns.write(strToWrite)
-            t.toc()
+    t.toc()
             #print(strToWrite)
 
 def run_gpu_faster(estimatedAnnFileName, busDir):
@@ -342,9 +342,9 @@ if __name__ == "__main__":
 
 
 
-    # run('annotationsTrain_test.txt', \
-    #     '/Users/omriefroni/PycharmProjects/comp_vision_ex2/cv_project/nn/final_dir/buses')
-    runTest("annotationsTrain.txt", "annotationsTrain_test.txt", 'buses/', 'result/', 10)
+    run_gpu('annotationsTrain_test.txt', \
+         '/Users/omriefroni/PycharmProjects/comp_vision_ex2/cv_project/nn/final_dir/buses')
+    # runTest("annotationsTrain.txt", "annotationsTrain_test.txt", 'buses/', 'result/', 10)
 
     elapsed = t.toc()
     print('elapsed')
