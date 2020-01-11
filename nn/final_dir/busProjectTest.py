@@ -10,7 +10,7 @@ import imageio
 
 
 fontdict = {'fontsize':15, 'weight':'bold'}
-plt.switch_backend('Qt5Agg')
+#plt.switch_backend('Qt5Agg')
 
 class IMAGE:
 
