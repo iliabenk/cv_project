@@ -51,14 +51,16 @@ surf_test_data = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_
 
 # get prediction from model (was taken from an RCNN tutorial)
 def get_prediction(model, img_path, threshold):
+  device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
   img = Image.open(img_path) # Load the image
   transform = T.Compose([T.ToTensor()]) # Defing PyTorch Transform
   img = transform(img) # Apply the transform to the image
+  img = img.to(device)
   pred = model([img]) # Pass the image to the model
 
-  pred_class = [COCO_INSTANCE_CATEGORY_NAMES[i] for i in list(pred[0]['labels'].numpy())] # Get the Prediction Score
-  pred_boxes = [[(i[0], i[1]), (i[2], i[3])] for i in list(pred[0]['boxes'].detach().numpy())] # Bounding boxes
-  pred_score = list(pred[0]['scores'].detach().numpy())
+  pred_class = [COCO_INSTANCE_CATEGORY_NAMES[i] for i in list(pred[0]['labels'].cpu().numpy())] # Get the Prediction Score
+  pred_boxes = [[(i[0], i[1]), (i[2], i[3])] for i in list(pred[0]['boxes'].cpu().detach().numpy())] # Bounding boxes
+  pred_score = list(pred[0]['scores'].detach().cpu().numpy())
   pred_t = [pred_score.index(x) for x in pred_score if x > threshold]
   if len(pred_t) != 0:
       pred_t =pred_t[-1] # Get list of index with score greater than threshold.
@@ -92,11 +94,11 @@ def test(model, epoch, output_path ):
     file_list = [os.path.join(output_path, file) for file in os.listdir(output_path) if '.JPG' in file]
     model.eval()
     output_fol = os.path.join(output_path, 'ep' + str(epoch))
+    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
     if not os.path.exists(output_fol):
         os.makedirs(output_fol)
     for img in file_list:
-
         object_detection_api(model,output_fol,img, threshold=test_threshold )
 
 # convert from gt format to NN format
