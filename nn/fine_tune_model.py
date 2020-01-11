@@ -648,6 +648,7 @@ def main(model_file_name = 'nn_buses_3.pt', data_path='final_dir/buses'):
         # Run the model on the test images and save predicted image.
         # if epoch%3 ==0 or epoch == num_epochs-1:
         #     test(model, epoch, test_path)
+        return model
     print("That's it!")
 
     # save the model for reloading after
