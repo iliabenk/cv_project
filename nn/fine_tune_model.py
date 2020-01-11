@@ -24,7 +24,7 @@ import time
 import pickle
 
 ########### start configs
-data_path = "buses"
+#data_path = "buses"
 train_perc = 0.8
 #model_file_name = "nn_busses_3.pt"
 
@@ -593,7 +593,7 @@ def get_train_test_imgs(images_list, train_perc):
 
     return train_imgs, test_imgs
 
-def main(model_file_name = 'nn_buses_3.pt'):
+def main(model_file_name = 'nn_buses_3.pt', data_path='final_dir/buses'):
     # train on the GPU or on the CPU, if a GPU is not available
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
