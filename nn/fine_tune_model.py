@@ -52,7 +52,7 @@ surf_test_data = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_
 # get prediction from model (was taken from an RCNN tutorial)
 def get_prediction(model, img_path, threshold):
   device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-  img = Image.open(img_path) # Load the image
+  img = cv2.imread(img_path) # Load the image
   img = img.to(device)
   transform = T.Compose([T.ToTensor()]) # Defing PyTorch Transform
   img = transform(img) # Apply the transform to the image
