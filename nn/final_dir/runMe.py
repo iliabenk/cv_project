@@ -72,6 +72,11 @@ class bassesDataset(Dataset):
 
     def __len__(self):
         return len(self.imgs)
+t = my_time()
+t.tic()
+model = create_model()
+t.toc()
+print('model loaded outside')
 
 def load_model():
     t = my_time()
@@ -85,7 +90,7 @@ def load_model():
         model.load_state_dict(torch.load('nn_busses.pt'))
         model.eval()
     t.toc()
-    print('Model was loaded')
+    print('Model was loaded inside')
     return model
 
 
@@ -278,7 +283,7 @@ def predict_label(img, des_label_train, file_path):
     _, des_test = get_features(img)
 
     ratio = 0.75
-    good_matches_limit = 250
+    # good_matches_limit = 250
 
     score_d = {'blue': 0, 'red': 0, 'white': 0, 'green': 0, 'orange': 0, 'grey': 0}
     amount_train_per_label_d = {'blue': 0, 'red': 0, 'white': 0, 'green': 0, 'orange': 0, 'grey': 0}
@@ -294,21 +299,21 @@ def predict_label(img, des_label_train, file_path):
 
         amount_train_per_label_d[label_train] += 1 #TODO only for testing, in submission these values are already known
 
-        amount_good_matching_points = get_amount_good_matching_points(des_test, des_train, ratio=ratio, k=2, good_matches_limit=good_matches_limit)
+        amount_good_matching_points = get_amount_good_matching_points(des_test, des_train, ratio=ratio, k=2) #, good_matches_limit=good_matches_limit)
         score_d[label_train] += amount_good_matching_points
 
-        if amount_good_matching_points >= good_matches_limit:
-            best_score_label = label_train
-            is_skip_decision_by_score = True
-            #print(best_score_label)
-            #print(amount_good_matching_points)
-            break
+        # if amount_good_matching_points >= good_matches_limit:
+        #     best_score_label = label_train
+        #     is_skip_decision_by_score = True
+        #     #print(best_score_label)
+        #     #print(amount_good_matching_points)
+        #     break
 
 
-    if is_skip_decision_by_score is False:
-        score_d = {label:(value / amount_train_per_label_d[label]) for (label, value) in score_d.items()}
+    # if is_skip_decision_by_score is False:
+    score_d = {label:(value / amount_train_per_label_d[label]) for (label, value) in score_d.items()}
 
-        best_score_label = get_best_label_candidate(score_d)
+    best_score_label = get_best_label_candidate(score_d)
 
     return best_score_label
 
@@ -336,8 +341,8 @@ def get_amount_good_matching_points(des1, des2, ratio=0.75, k=2, good_matches_li
             if m.distance < ratio * n.distance:
                 good_matches += 1
 
-            if good_matches >= good_matches_limit:
-                break
+            # if good_matches >= good_matches_limit:
+            #     break
         return good_matches
     except:
         return 0
