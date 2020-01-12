@@ -166,7 +166,7 @@ def run_gpu(estimatedAnnFileName, busDir, batch_size = 1, num_workers=1):
     t.toc()
             #print(strToWrite)
 
-def run_gpu_faster(estimatedAnnFileName, busDir ,batch_size = 1, num_workers=1):
+def run(estimatedAnnFileName, busDir ,batch_size = 1, num_workers=1):
     model = load_model()
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
@@ -263,9 +263,20 @@ def get_prediction(pred, img, img_path, threshold, des_label_train=[]): #img_pat
 
   pred_boxes = [[(i[0], i[1]), (i[2], i[3])] for i in list(pred['boxes'].detach().cpu().numpy())] # Bounding boxes
   pred_score = list(pred['scores'].detach().cpu().numpy())
+
   pred_t = [pred_score.index(x) for x in pred_score if x > threshold] # Get list of index with score greater than threshold.
 
   print(pred_score)
+
+  pred_t = []
+
+  while not pred_t and threshold > 0:
+    pred_t = [pred_score.index(x) for x in pred_score if x > threshold] # Get list of index with score greater than threshold.
+    threshold -= 0.05
+
+  if '1135' in img_path:
+      print(pred_score)
+
   pred_class = []
 
   if pred_t:
@@ -281,6 +292,16 @@ def get_prediction(pred, img, img_path, threshold, des_label_train=[]): #img_pat
           y_max = int(max_coor[1])
 
           pred_class.append(predict_label(img[y_min : (y_max + 1), x_min : (x_max + 1)], des_label_train, img_path))
+  else:
+      print('didnt find any object in the image! using whole image for classification')
+
+      x_min = 0
+      y_min = 0
+      x_max = np.shape(img)[1]
+      y_max = np.shape(img)[0]
+
+      pred_class.append(predict_label(img[y_min : (y_max + 1), x_min : (x_max + 1)], des_label_train, img_path))
+
 
   return pred_boxes, pred_class
 
@@ -371,8 +392,8 @@ if __name__ == "__main__":
 
 
 
-    run_gpu('annotationsTrain_test.txt', \
-         '/Users/omriefroni/PycharmProjects/comp_vision_ex2/cv_project/nn/final_dir/buses', num_workers=4)
+    run('annotationsTrain_test.txt', \
+         '/Users/iliabenkovitch/Downloads/drive-download-20200112T185417Z-001/busesTrain', num_workers=4)
     # runTest("annotationsTrain.txt", "annotationsTrain_test.txt", 'buses/', 'result/', 10)
 
     elapsed = t.toc()
