@@ -83,7 +83,7 @@ def load_model():
     with torch.no_grad():
         model = create_model()
         model.to(device)
-        model.load_state_dict(torch.load('nn_busses.pt'))
+        model.load_state_dict(torch.load('nn_buses_final.pt'))
         model.eval()
     t.toc()
     print('Model was loaded inside')
