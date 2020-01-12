@@ -72,11 +72,7 @@ class bassesDataset(Dataset):
 
     def __len__(self):
         return len(self.imgs)
-t = my_time()
-t.tic()
-model = create_model()
-t.toc()
-print('model loaded outside')
+
 
 def load_model():
     t = my_time()
@@ -93,10 +89,14 @@ def load_model():
     print('Model was loaded inside')
     return model
 
+t = load_model()
+t.tic()
+model = create_model()
+t.toc()
+print('model loaded outside')
 
 
-
-def run_gpu(estimatedAnnFileName, busDir, batch_size = 30, num_workers=1):
+def run_gpu(estimatedAnnFileName, busDir, batch_size = 1, num_workers=1):
     model = load_model()
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
@@ -166,7 +166,7 @@ def run_gpu(estimatedAnnFileName, busDir, batch_size = 30, num_workers=1):
     t.toc()
             #print(strToWrite)
 
-def run_gpu_faster(estimatedAnnFileName, busDir ,batch_size = 30, num_workers=1):
+def run_gpu_faster(estimatedAnnFileName, busDir ,batch_size = 1, num_workers=1):
     model = load_model()
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
