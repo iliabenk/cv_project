@@ -50,6 +50,7 @@ class bassesDataset(Dataset):
         # load all image files, sorting them to
         # ensure that they are aligned
         self.imgs = [os.path.join(root, file) for file in os.listdir(os.path.join(root)) if '.JPG' in file]
+
         d = {}
         self.transforms = transforms
 
@@ -288,7 +289,7 @@ def predict_label(img, des_label_train, file_path):
         des_train = train_des_label[1]
         train_file_name = train_des_label[2]
 
-        if os.path.basename(file_path).replace('.JPG', '') in train_file_name: #TODO only for testing, not needed in real run
+        if os.path.basename(file_path).replace('.JPG', '') in train_file_name: #FIXME  - remove
             continue
 
         amount_train_per_label_d[label_train] += 1 #TODO only for testing, in submission these values are already known
@@ -330,15 +331,17 @@ def get_amount_good_matching_points(des1, des2, ratio=0.75, k=2, good_matches_li
 
     # Apply ratio test
     good_matches = 0
+    try:
+        for m,n in matches:
+            if m.distance < ratio * n.distance:
+                good_matches += 1
 
-    for m,n in matches:
-        if m.distance < ratio * n.distance:
-            good_matches += 1
+            if good_matches >= good_matches_limit:
+                break
+        return good_matches
+    except:
+        return 0
 
-        if good_matches >= good_matches_limit:
-            break
-
-    return good_matches
 
 
 def get_features(img):
