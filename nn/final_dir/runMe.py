@@ -77,7 +77,7 @@ def load_model():
     t = my_time()
     t.tic()
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-    print('run_1')
+    # print('run_1')
 
     with torch.no_grad():
         model = create_model()
@@ -85,13 +85,13 @@ def load_model():
         model.to(device)
         model.eval()
     t.toc()
-    print('Model was loaded inside')
+    # print('Model was loaded inside')
     return model
 t = my_time()
 t.tic()
 model = load_model()
 t.toc()
-print('model loaded outside')
+# print('model loaded outside')
 
 
 def run_gpu(estimatedAnnFileName, busDir, batch_size = 1, num_workers=1):
@@ -111,7 +111,7 @@ def run_gpu(estimatedAnnFileName, busDir, batch_size = 1, num_workers=1):
         t2 = my_time()
         t2.tic()
         for curr_sample in data_loader:
-            print('start forward')
+            # print('start forward')
             t.tic()
             curr_sample = curr_sample.to(device)
             curr_pred = model(curr_sample)
@@ -121,9 +121,9 @@ def run_gpu(estimatedAnnFileName, busDir, batch_size = 1, num_workers=1):
                 start = False
             else:
                 pred = pred + curr_pred
-            print(len(pred))
+            # print(len(pred))
     t2.toc()
-    print('finished pred')
+    # print('finished pred')
     files_path_list = [os.path.join(busDir, file) for file in os.listdir(busDir) if '.JPG' in file]
 
     with open('KAZE_trained_features.pickle', 'rb') as handle:
@@ -189,7 +189,7 @@ def run(estimatedAnnFileName, busDir ,batch_size = 1, num_workers=1):
         # t2 = my_time()
         # t2.tic()
         for curr_sample in data_loader:
-            print('start forward')
+            # print('start forward')
             t.tic()
             curr_sample = curr_sample.to(device)
             curr_pred = model(curr_sample)
@@ -266,8 +266,8 @@ def get_prediction(pred, img, img_path, threshold, des_label_train=[]): #img_pat
 
   pred_t = [pred_score.index(x) for x in pred_score if x > threshold] # Get list of index with score greater than threshold.
 
-  print(pred_score)
-  print(img_path)
+  # print(pred_score)
+  # print(img_path)
   pred_t = []
 
   while not pred_t and threshold > 0:
@@ -321,8 +321,8 @@ def predict_label(img, des_label_train, file_path):
         des_train = train_des_label[1]
         train_file_name = train_des_label[2]
 
-        if os.path.basename(file_path).replace('.JPG', '') in train_file_name: #FIXME  - remove
-            continue
+        # if os.path.basename(file_path).replace('.JPG', '') in train_file_name: #FIXME  - remove
+        #     continue
 
         amount_train_per_label_d[label_train] += 1 #TODO only for testing, in submission these values are already known
 
@@ -385,16 +385,16 @@ def get_features(img):
 
     return _, des
 
-if __name__ == "__main__":
-    t = my_time()
-
-    t.tic()
-
-
-
-    run('annotationsTrain_test.txt', \
-         '/Users/iliabenkovitch/Downloads/drive-download-20200112T185417Z-001/busesTrain', num_workers=4)
-    # runTest("annotationsTrain.txt", "annotationsTrain_test.txt", 'buses/', 'result/', 10)
-
-    elapsed = t.toc()
-    print('elapsed')
+# if __name__ == "__main__":
+#     t = my_time()
+#
+#     t.tic()
+#
+#
+#
+#     run('annotationsTrain_test.txt', \
+#          '/Users/iliabenkovitch/Downloads/drive-download-20200112T185417Z-001/busesTrain', num_workers=4)
+#     # runTest("annotationsTrain.txt", "annotationsTrain_test.txt", 'buses/', 'result/', 10)
+#
+#     elapsed = t.toc()
+#     # print('elapsed')
