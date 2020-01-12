@@ -200,6 +200,7 @@ def run_gpu_faster(estimatedAnnFileName, busDir ,batch_size = 1, num_workers=1):
               strToWrite = os.path.basename(file_path) + ":"
 
               for i in range(len(boxes)):
+                  print([len(boxes), len(pred_cls)])
                   min_coor = boxes[i][0]
                   max_coor = boxes[i][1]
                   x_min = int(min_coor[0])
