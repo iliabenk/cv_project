@@ -74,8 +74,8 @@ class bassesDataset(Dataset):
 
 
 def load_model():
-    t = my_time()
-    t.tic()
+    # t = my_time()
+    # t.tic()
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     # print('run_1')
 
@@ -84,13 +84,13 @@ def load_model():
         model.load_state_dict(torch.load('nn_buses_final.pt', map_location=device))
         model.to(device)
         model.eval()
-    t.toc()
+    # t.toc()
     # print('Model was loaded inside')
     return model
-t = my_time()
-t.tic()
+# t = my_time()
+# t.tic()
 model = load_model()
-t.toc()
+# t.toc()
 # print('model loaded outside')
 
 
@@ -105,24 +105,24 @@ def run_gpu(estimatedAnnFileName, busDir, batch_size = 1, num_workers=1):
     data_loader = torch.utils.data.DataLoader(
         dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
     start = True
-    t = my_time()
+    # t = my_time()
 
     with torch.no_grad():
-        t2 = my_time()
-        t2.tic()
+        # t2 = my_time()
+        # t2.tic()
         for curr_sample in data_loader:
             # print('start forward')
-            t.tic()
+            # t.tic()
             curr_sample = curr_sample.to(device)
             curr_pred = model(curr_sample)
-            t.toc()
+            # t.toc()
             if start:
                 pred = curr_pred
                 start = False
             else:
                 pred = pred + curr_pred
             # print(len(pred))
-    t2.toc()
+    # t2.toc()
     # print('finished pred')
     files_path_list = [os.path.join(busDir, file) for file in os.listdir(busDir) if '.JPG' in file]
 
@@ -130,8 +130,8 @@ def run_gpu(estimatedAnnFileName, busDir, batch_size = 1, num_workers=1):
         des_label_list = pickle.load(handle)
 
     dict_color = {'red': 6, 'blue': 5, 'white': 3, 'grey': 4, 'orange': 2, 'green': 1}
-    t = my_time()
-    t.tic()
+    # t = my_time()
+    # t.tic()
     with open (estimatedAnnFileName, 'w') as fp_anns:
         for indx, file_path in enumerate(files_path_list):
             boxes, pred_cls = object_detection_api(pred[indx],file_path, threshold=0.9, train_des_label=des_label_list)
@@ -163,7 +163,7 @@ def run_gpu(estimatedAnnFileName, busDir, batch_size = 1, num_workers=1):
                     strToWrite += ','
 
             fp_anns.write(strToWrite)
-    t.toc()
+    # t.toc()
             #print(strToWrite)
 
 def run(estimatedAnnFileName, busDir ,batch_size = 1, num_workers=1):
@@ -176,7 +176,7 @@ def run(estimatedAnnFileName, busDir ,batch_size = 1, num_workers=1):
     with open('KAZE_trained_features.pickle', 'rb') as handle:
         des_label_list = pickle.load(handle)
     global_indx = 0
-    t = my_time()
+    # t = my_time()
     data_loader = torch.utils.data.DataLoader(
         dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
     start = True
@@ -190,11 +190,11 @@ def run(estimatedAnnFileName, busDir ,batch_size = 1, num_workers=1):
         # t2.tic()
         for curr_sample in data_loader:
             # print('start forward')
-            t.tic()
+            # t.tic()
             curr_sample = curr_sample.to(device)
             curr_pred = model(curr_sample)
             #return curr_sample
-            t.toc()
+            # t.toc()
             for i in range(len(curr_sample)):
               file_path = files_path_list[global_indx]
               global_indx +=1
