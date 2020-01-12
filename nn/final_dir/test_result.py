@@ -4,9 +4,10 @@ from busProjectTest import runTest
 import sys
 import os
 
-myAnnFileName = 'annotationsTrain_test_3.txt'
+
+myAnnFileName = 'annotationsTrain_test_final_3.txt'
 busDir = 'buses'
-saveDir = 'result_2'
+saveDir = 'result_final_1'
 runTest('annotationsTrain.txt', myAnnFileName, busDir, saveDir, elapsed=10)
 
 

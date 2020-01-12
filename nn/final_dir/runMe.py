@@ -267,15 +267,14 @@ def get_prediction(pred, img, img_path, threshold, des_label_train=[]): #img_pat
   pred_t = [pred_score.index(x) for x in pred_score if x > threshold] # Get list of index with score greater than threshold.
 
   print(pred_score)
-
+  print(img_path)
   pred_t = []
 
   while not pred_t and threshold > 0:
     pred_t = [pred_score.index(x) for x in pred_score if x > threshold] # Get list of index with score greater than threshold.
     threshold -= 0.05
 
-  if '1135' in img_path:
-      print(pred_score)
+
 
   pred_class = []
 
