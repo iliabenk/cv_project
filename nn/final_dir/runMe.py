@@ -264,8 +264,8 @@ def get_prediction(pred, img, img_path, threshold, des_label_train=[]): #img_pat
   pred_boxes = [[(i[0], i[1]), (i[2], i[3])] for i in list(pred['boxes'].detach().cpu().numpy())] # Bounding boxes
   pred_score = list(pred['scores'].detach().cpu().numpy())
   pred_t = [pred_score.index(x) for x in pred_score if x > threshold] # Get list of index with score greater than threshold.
-  if '1135' in img_path:
-      print(pred_score)
+
+  print(pred_score)
   pred_class = []
 
   if pred_t:
