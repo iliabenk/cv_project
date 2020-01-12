@@ -81,16 +81,15 @@ def load_model():
 
     with torch.no_grad():
         model = create_model()
+        model.load_state_dict(torch.load('nn_buses_final.pt', map_location=device))
         model.to(device)
-        model.load_state_dict(torch.load('nn_buses_final.pt'))
         model.eval()
     t.toc()
     print('Model was loaded inside')
     return model
 t = my_time()
 t.tic()
-#model = load_model()
-model = create_model()
+model = load_model()
 t.toc()
 print('model loaded outside')
 
@@ -151,8 +150,10 @@ def run_gpu(estimatedAnnFileName, busDir, batch_size = 1, num_workers=1):
                 height = y_max - y_min
 
                 # ann = [x_min, y_min, width, height, convert_label_name_to_label_num(pred_cls[i])]
-                ann = [x_min, y_min, width, height, dict_color[pred_cls[i]]]
-
+                try:
+                    ann = [x_min, y_min, width, height, dict_color[pred_cls[i]]]
+                except:
+                    ann = []
                 posStr = [str(x) for x in ann]
                 posStr = ','.join(posStr)
                 strToWrite += '[' + posStr + ']'
@@ -180,6 +181,8 @@ def run_gpu_faster(estimatedAnnFileName, busDir ,batch_size = 1, num_workers=1):
         dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
     start = True
 
+    dict_color = {'red': 6, 'blue': 5, 'white': 3, 'grey': 4, 'orange': 2, 'green': 1}
+
     with open (estimatedAnnFileName, 'w') as fp_anns:
 
       with torch.no_grad():
@@ -197,8 +200,7 @@ def run_gpu_faster(estimatedAnnFileName, busDir ,batch_size = 1, num_workers=1):
               global_indx +=1
               boxes, pred_cls = object_detection_api_faster(curr_pred[i], curr_sample[i].cpu().numpy()[0,:,:] ,file_path, threshold=0.9, train_des_label=des_label_list)
               strToWrite = os.path.basename(file_path) + ":"
-              print([len(boxes), len(pred_cls)])
-              print(strToWrite)
+
               for j in range(len(boxes)):
                   # print(i)
                   min_coor = boxes[j][0]
@@ -209,9 +211,11 @@ def run_gpu_faster(estimatedAnnFileName, busDir ,batch_size = 1, num_workers=1):
                   y_max = int(max_coor[1])
                   width = x_max - x_min
                   height = y_max - y_min
-                  dict_color = {'red':6, 'blue':5 ,'white':3, 'grey':4, 'orange':2, 'green':1}
-                  ann = [x_min, y_min, width, height, dict_color[pred_cls[j]]]
 
+                  try:
+                      ann = [x_min, y_min, width, height, dict_color[pred_cls[j]]]
+                  except:
+                      ann = []
                   posStr = [str(x) for x in ann]
                   posStr = ','.join(posStr)
                   strToWrite += '[' + posStr + ']'
