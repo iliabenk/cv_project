@@ -32,7 +32,6 @@ def create_model():
 
     # load a model pre-trained pre-trained on COCO
     model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False,pretrained_backbone=False)
-    print("new_v")
     # replace the classifier with a new one, that has
     # num_classes which is user-defined
     num_classes = len(INSTANCE_CATEGORY_NAMES)  # 1 class (person) + background
@@ -261,7 +260,8 @@ def get_prediction(pred, img, img_path, threshold, des_label_train=[]): #img_pat
   pred_boxes = [[(i[0], i[1]), (i[2], i[3])] for i in list(pred['boxes'].detach().cpu().numpy())] # Bounding boxes
   pred_score = list(pred['scores'].detach().cpu().numpy())
   pred_t = [pred_score.index(x) for x in pred_score if x > threshold] # Get list of index with score greater than threshold.
-
+  if '1135' in img_path:
+      print(pred_score)
   pred_class = []
 
   if pred_t:
