@@ -88,10 +88,9 @@ def load_model():
     t.toc()
     print('Model was loaded inside')
     return model
-
-t = load_model()
+t = my_time()
 t.tic()
-model = create_model()
+model = load_model()
 t.toc()
 print('model loaded outside')
 
