@@ -200,10 +200,10 @@ def run_gpu_faster(estimatedAnnFileName, busDir ,batch_size = 1, num_workers=1):
               strToWrite = os.path.basename(file_path) + ":"
               print([len(boxes), len(pred_cls)])
 
-              for i in range(len(boxes)):
-                  print(i)
-                  min_coor = boxes[i][0]
-                  max_coor = boxes[i][1]
+              for j in range(len(boxes)):
+                  # print(i)
+                  min_coor = boxes[j][0]
+                  max_coor = boxes[j][1]
                   x_min = int(min_coor[0])
                   y_min = int(min_coor[1])
                   x_max = int(max_coor[0])
@@ -211,12 +211,12 @@ def run_gpu_faster(estimatedAnnFileName, busDir ,batch_size = 1, num_workers=1):
                   width = x_max - x_min
                   height = y_max - y_min
                   dict_color = {'red':6, 'blue':5 ,'white':3, 'grey':4, 'orange':2, 'green':1}
-                  ann = [x_min, y_min, width, height, dict_color[pred_cls[i]]]
+                  ann = [x_min, y_min, width, height, dict_color[pred_cls[j]]]
 
                   posStr = [str(x) for x in ann]
                   posStr = ','.join(posStr)
                   strToWrite += '[' + posStr + ']'
-                  if (i == int(len(boxes)) - 1):
+                  if (j == int(len(boxes)) - 1):
                       strToWrite += '\n'
                   else:
                       strToWrite += ','
