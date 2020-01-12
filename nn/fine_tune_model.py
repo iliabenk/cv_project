@@ -25,7 +25,7 @@ import pickle
 
 ########### start configs
 #data_path = "buses"
-train_perc = 0.8
+train_perc = 1
 #model_file_name = "nn_busses_3.pt"
 
 #train_color_folder_path = "/Users/iliabenkovitch/Documents/Computer_Vision/git/git_orign_cv_project/nn/boxes"
@@ -34,7 +34,7 @@ train_perc = 0.8
 # Defines the labels for the model, change to colors if you want.
 COCO_INSTANCE_CATEGORY_NAMES = ['background','bus']
 # COCO_INSTANCE_CATEGORY_NAMES = ['background', 'green', 'yellow', 'white', 'grey', 'blue', 'red']
-num_epochs = 40
+num_epochs = 10
 
 test_threshold = 0.8
 
@@ -592,10 +592,12 @@ def get_train_test_imgs(images_list, train_perc):
 
     train_imgs_indices = np.random.choice(num_imgs, round(train_perc * num_imgs), replace=False)
 
-    train_imgs = [images_list[i] for i in train_imgs_indices if '1013' not in images_list[i]]
+    train_imgs = [images_list[i] for i in train_imgs_indices ]#if '1013' not in images_list[i]]
 
     test_imgs = list(set(images_list) - set(train_imgs))
+    print('Test:')
     print(test_imgs)
+    print("Train:")
     print(len(train_imgs))
 
     return train_imgs, test_imgs
