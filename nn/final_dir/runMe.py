@@ -199,7 +199,7 @@ def run_gpu_faster(estimatedAnnFileName, busDir ,batch_size = 1, num_workers=1):
               boxes, pred_cls = object_detection_api_faster(curr_pred[i], curr_sample[i].cpu().numpy()[0,:,:] ,file_path, threshold=0.9, train_des_label=des_label_list)
               strToWrite = os.path.basename(file_path) + ":"
               print([len(boxes), len(pred_cls)])
-
+              print(strToWrite)
               for j in range(len(boxes)):
                   # print(i)
                   min_coor = boxes[j][0]
