@@ -299,6 +299,7 @@ def get_prediction(pred, img, img_path, threshold, des_label_train=[]): #img_pat
       y_min = 0
       x_max = np.shape(img)[1]
       y_max = np.shape(img)[0]
+      pred_boxes = [[(y_min, x_min), (y_max, x_max)]]
 
       pred_class.append(predict_label(img[y_min : (y_max + 1), x_min : (x_max + 1)], des_label_train, img_path))
 
