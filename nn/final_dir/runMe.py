@@ -83,13 +83,15 @@ def load_model():
     with torch.no_grad():
         model = create_model()
         model.to(device)
+        model.load_state_dict(torch.load('nn_buses_final.pt'))
         model.eval()
     t.toc()
     print('Model was loaded inside')
     return model
 t = my_time()
 t.tic()
-model = load_model()
+#model = load_model()
+model = create_model()
 t.toc()
 print('model loaded outside')
 
@@ -207,7 +209,6 @@ def run_gpu_faster(estimatedAnnFileName, busDir ,batch_size = 1, num_workers=1):
                   width = x_max - x_min
                   height = y_max - y_min
                   dict_color = {'red':6, 'blue':5 ,'white':3, 'grey':4, 'orange':2, 'green':1}
-                  print(pred_cls[i])
                   ann = [x_min, y_min, width, height, dict_color[pred_cls[i]]]
 
                   posStr = [str(x) for x in ann]
